@@ -1,5 +1,9 @@
 # dsh-streamfold · 流式折叠
 
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![format](https://img.shields.io/badge/format-DSH%20bundle-blueviolet.svg)](cordis.patch.yml)
+[![tests](https://img.shields.io/badge/tests-27%20passed-brightgreen.svg)](test/spark.mjs)
+
 > 一个更好的会话窗口：**运行时自动展开最新的思考小窗**，旧小窗自动折叠，跑完自动将思考过程与工具调用折起，并且可以保留穿插的正文不折叠，全程水流般的动效。
 
 > **为什么有这个项目**：官方「紧凑」在会话还有未加载历史时会折叠失效；本插件的折叠按自己的规则走，不受历史是否加载完影响。

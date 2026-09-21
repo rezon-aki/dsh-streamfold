@@ -1,5 +1,9 @@
 # dsh-streamfold
 
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![format](https://img.shields.io/badge/format-DSH%20bundle-blueviolet.svg)](cordis.patch.yml)
+[![tests](https://img.shields.io/badge/tests-27%20passed-brightgreen.svg)](test/spark.mjs)
+
 > A better conversation window: **the newest thinking window opens automatically while a turn runs**, older windows fold themselves, and when the turn finishes the thinking and tool calls fold away — interleaved prose can stay unfolded. Water-like motion throughout.
 
 > **Why this project exists**: the official Compact mode stops folding when a session still has unloaded history; dsh-streamfold folds on its own terms and does not depend on whether history has finished loading.
