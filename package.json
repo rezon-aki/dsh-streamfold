@@ -1,0 +1,61 @@
+{
+  "name": "dsh-streamfold",
+  "version": "0.3.0",
+  "description": "流式折叠：一个更好的会话窗口——运行时自动展开最新思考小窗、旧窗自动折叠，跑完把思考与工具调用折起，全程水流般的动效。",
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "web",
+    "ui",
+    "transcript",
+    "fold",
+    "streaming",
+    "display-mode"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rezon-aki/dsh-streamfold.git"
+  },
+  "homepage": "https://github.com/rezon-aki/dsh-streamfold#readme",
+  "bugs": {
+    "url": "https://github.com/rezon-aki/dsh-streamfold/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.5-rc.2"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
+      "platform": "web"
+    }
+  }
+}

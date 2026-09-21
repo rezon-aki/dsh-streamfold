@@ -1,0 +1,7 @@
+# dsh-streamfold bundle patch：把 host 半区插进 profile 的插件 roster。
+# 浏览器半区走 package.json 的 dsh.client 清单（客户端注册表据此提供 lib/client.js）。
+# 用 `dsh plugin --profile <name> add <路径或 git 地址>` 安装后本层自动生效；
+# 不要再往 profile 的 cordis.patch.yml 手动 insert 同一 id（重复 id 会让加载器报错起不来）。
+- insert:
+    - id: dsh-streamfold
+      name: 'dsh-streamfold'

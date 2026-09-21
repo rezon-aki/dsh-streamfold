@@ -1,0 +1,6 @@
+node_modules/
+*.tsbuildinfo
+*.tgz
+
+# 维护者笔记：只留本地，不进仓库/npm 包
+HANDOFF.md
