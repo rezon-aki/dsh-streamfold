@@ -18,6 +18,8 @@
 ## 安装
 
 ```bash
+# 两种等价写法
+dsh plugin --profile web add github:rezon-aki/dsh-streamfold
 dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 ```
 
