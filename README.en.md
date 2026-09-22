@@ -9,9 +9,11 @@
 > **Why this project exists**: the official Compact mode stops folding when a session still has unloaded history; dsh-streamfold folds on its own terms and does not depend on whether history has finished loading.
 
 - **Peek at what dsh is thinking right now.** The newest thinking window opens automatically while it works, and the transcript still stays tidy.
-- **Motion.** We wanted an interface that simply feels good to look at: window height, folding and scroll-follow all advance per frame, like water — no jumps.
-- **Sparks.** Blue sparks rise from the bottom edge of the running thinking window, like a grinding wheel on metal: the faster the content scrolls, the denser they fly, and they stop when it stops. Colour and density are configurable; turning it off means it never runs.
+- **Motion.** We wanted an interface that simply feels good to look at: window height, folding and scroll-follow all advance per frame, like water — no jumps. The "back to bottom" button keeps the official look, but **when it shows is decided here** — normal follow lag no longer makes it flicker, and clicking it glides back smoothly.
+- **Sparks.** Blue sparks rise from the bottom edge of the running thinking window, like a grinding wheel on metal: the faster the content scrolls, the **brighter and denser** they fly (brightness follows scroll speed — dim on slow output, hot on fast), and they stop when it stops. Colour and density are configurable; turning it off means it never runs.
 - **Forging.** While the answer streams, every new chunk throws a small spray of sparks from the writing head (the end of the last line), drifting outwards like metal struck on an anvil. Written text only; pause and the hammer stops, and the sparks burn out on their own. Colour, density, speed and lifetime are configurable.
+- **Settle on the prompt.** When a turn finishes the view glides back to **the message that started it**, so you never have to scroll up to remember what you asked (skipped if you scrolled away yourself; on by default, can be turned off).
+- **Pin the prompt.** The prompt of the turn you are reading stays pinned to the top of the conversation, one line with an ellipsis; it steps aside while the real row is on screen, and **clicking it glides back to that message** (on by default, can be turned off).
 
 ## Why it is light
 
@@ -65,6 +67,8 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Smoothing factor | 0.15 | Share of the remaining gap consumed per frame (0.05–0.9) |
 | Minimum step | 1 | Minimum pixels advanced per 16 ms (refresh-rate independent) |
 | Show "back to bottom" | on | Shown when away from the bottom (hidden for follow lag, to avoid flicker) |
+| Settle on the prompt | on | When a turn finishes, glide back to your message that started it; if you scrolled away yourself, nothing moves |
+| Pin the prompt | on | Keep the prompt of the turn you are reading pinned to the top of the conversation: it follows you as you scroll up, one line with ellipsis; it steps aside while the real row is in view, click to glide back to it |
 | Animated transitions | on | Off makes folding / expanding / jumping instant |
 | Window sparks | on | Sparks along the bottom edge of the running thinking window (standalone module: off = no canvas, no frames) |
 | Spark colour | #4fa8ff | Spark colour; the core is brightened towards white heat |
