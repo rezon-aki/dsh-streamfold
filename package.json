@@ -1,11 +1,11 @@
 {
   "name": "dsh-streamfold",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "流式折叠：一个更好的会话窗口——运行时自动展开最新思考小窗、旧窗自动折叠，跑完把思考与工具调用折起，全程水流般的动效。",
   "type": "module",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "node test/spark.mjs"
+    "test": "node test/spark.mjs && node test/contract.mjs && node test/client-apply.mjs"
   },
   "exports": {
     ".": {
@@ -48,14 +48,22 @@
   },
   "dsh": {
     "engines": {
-      "dsh": ">=0.1.5-rc.2"
+      "dsh": ">=0.1.7-alpha.1"
+    },
+    "compatibility": {
+      "dsh": ">=0.1.7-alpha.1 <0.2.0",
+      "dshReleases": {
+        "0.1.7-rc.1": "compatible"
+      },
+      "profiles": [
+        "web"
+      ]
     },
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-slots"
       ],
       "platform": "web"

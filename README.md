@@ -2,7 +2,7 @@
 
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![format](https://img.shields.io/badge/format-DSH%20bundle-blueviolet.svg)](cordis.patch.yml)
-[![tests](https://img.shields.io/badge/tests-27%20passed-brightgreen.svg)](test/spark.mjs)
+[![tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](test/spark.mjs)
 
 > 一个更好的会话窗口：**运行时自动展开最新的思考小窗**，旧小窗自动折叠，跑完自动将思考过程与工具调用折起，并且可以保留穿插的正文不折叠，全程水流般的动效。
 
@@ -18,7 +18,7 @@
 ## 它轻在哪
 
 - **不另开视图。** 直接在官方对话流上做 DOM 增强（靠语义属性定位行），不自己实现会话壳、不接管渲染管线、不依赖内部渲染器契约——升级面小。
-- **零依赖、零构建。** 手写 `lib/`，没有构建步骤与运行时依赖；宿主半区只做一件事：把设置写进 `~/.dsh/streamfold.json`。
+- **零依赖、零构建。** 手写 `lib/`，没有构建步骤、没有运行时依赖，也不读写任何文件：宿主半区只是一个占位条目（客户端清单据它把浏览器半区交给页面），设置存在浏览器 localStorage。
 - **不碰官方源码，卸载即净。**
 
 ## 安装
@@ -31,7 +31,9 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 装完重启 profile，然后**刷新浏览器页面**（客户端代码在页面加载时注入）。
 
-要求 DSH **>= 0.1.5-rc.2**（依赖该版本的对话流 DOM 契约）。
+要求 DSH **>= 0.1.7-alpha.1**（官方「对话显示」档位改由 `configForms` 服务托管；0.1.5 及更早请用 0.4.x）。
+
+> **0.4 → 0.5 的变化**：设置不再写宿主文件（`~/.dsh/streamfold.json` 与 `/streamfold/api/settings` 路由已移除），改为只存浏览器 localStorage——你在页面上已经调好的值不受影响；0.1.7 把「对话显示」换成四档（简洁/标准/详细/完全展开），本插件把「折叠」作为第五项接在官方下拉里，选它时官方自动停在「完全展开」，两层折叠不会打架。
 
 卸载：
 
@@ -43,13 +45,14 @@ dsh plugin --profile web remove dsh-streamfold
 
 ## 用法
 
-设置 → 通用设置 → **对话显示** → 选「**折叠**」（第三项，取代官方那一行）：
+设置 → 通用设置 → **工作步骤展示**：官方那四档原样保留（**简洁 / 标准 / 详细 / 完全展开**），末尾多一项「**折叠**」——本插件接管的那一档：
 
 | 选项 | 行为 |
 | --- | --- |
-| 标准 | 官方标准（所有过程行可见） |
-| 紧凑 | 官方紧凑 |
+| 简洁 / 标准 / 详细 / 完全展开 | 官方原本的四档，文案与行为都跟官方一致 |
 | 折叠 | 本插件：运行中的一轮只留一个窗，其余过程收成一行 |
+
+选「折叠」时，官方那一档会被自动停在 **完全展开**（等价于 0.1.5 时代的「标准」语义）——官方自己不折、不分组，折叠只由本插件做，避免两层折叠打架；档位名与官方设置页同源（取自官方词典），官方改了文案这边跟着变。
 
 专属设置页：设置 → **流式折叠**（下面所有开关都在这里，改动即时生效）。
 
@@ -77,7 +80,7 @@ dsh plugin --profile web remove dsh-streamfold
 | 火花密度 | 1 | 火星数量倍率（0.2~3），越高越密、绘制开销越大（两种火花共用） |
 | 正文锻打火花 | 开 | 正文流式写头砸出的火星；写头不动就不砸，跑完自动收手 |
 
-设置同时存在浏览器 localStorage 与宿主文件 `~/.dsh/streamfold.json`（路由 `/streamfold/api/settings`），远程 Web UI 也能写。
+设置存在浏览器 localStorage（按 DSH 页面源站隔离）。
 
 ## 诊断
 
@@ -95,7 +98,7 @@ __dshStreamfold.set({ smoothGrow: 0.1, supersedeDelay: 3 })
 ## 安全边界
 
 - 纯客户端展示增强：只读对话 DOM，不发网络请求、不接触凭据、不改官方源码。
-- 宿主半区只提供设置持久化：写 `~/.dsh/streamfold.json`，暴露同源路由 `/streamfold/api/settings`（跨站请求返回 403）。
+- 宿主半区不读写文件、不注册路由：设置只落浏览器 localStorage；对官方「对话显示」档位的读写走 DSH 自己的设置服务（`configForms`）。
 - 卸载即净：设置行、小窗标记与注入的样式全部撤掉。
 
 ## 开发
@@ -103,7 +106,7 @@ __dshStreamfold.set({ smoothGrow: 0.1, supersedeDelay: 3 })
 - 手写、无构建：`lib/client.js`（浏览器半区，包在 `window.__ModuleLoader__` 里）、`lib/index.js`（宿主半区）。
 - 改完 `lib/*.js` 重载插件并**刷新页面**。
 - 行锚点全部用官方语义属性：`[data-chat-flow]`、`[data-chat-flow-kind]`、`[data-chat-turn]`、`[data-disclosure-row][aria-expanded]`、`[data-variant=think]`、`[data-tool]`、`[data-sample=bash]`、`[class*=_thinkBody]`、`[class*=_bodyWrap]`、`[data-context-injection-body]`——不用 CSS module 哈希。
-- 已在 DSH 0.1.5-rc.2 验证。
+- 已在 DSH 0.1.7-rc.1 验证。
 
 ## License
 

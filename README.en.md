@@ -2,7 +2,7 @@
 
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![format](https://img.shields.io/badge/format-DSH%20bundle-blueviolet.svg)](cordis.patch.yml)
-[![tests](https://img.shields.io/badge/tests-27%20passed-brightgreen.svg)](test/spark.mjs)
+[![tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](test/spark.mjs)
 
 > A better conversation window: **the newest thinking window opens automatically while a turn runs**, older windows fold themselves, and when the turn finishes the thinking and tool calls fold away — interleaved prose can stay unfolded. Water-like motion throughout.
 
@@ -18,7 +18,7 @@
 ## Why it is light
 
 - **No separate view.** It enhances the official transcript through semantic attributes instead of shipping its own conversation shell, taking over the render pipeline or depending on internal renderer contracts — a small upgrade surface.
-- **No dependencies, no build.** Hand-written `lib/`; the host half does one thing — persist settings to `~/.dsh/streamfold.json`.
+- **No dependencies, no build.** Hand-written `lib/`; no runtime dependencies and no file I/O — the host half is just an entry so the client manifest can hand the browser half to the page, and settings live in browser localStorage.
 - **No changes to DSH source; clean uninstall.**
 
 ## Install
@@ -31,7 +31,9 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.1.5-rc.2** (depends on that version's transcript DOM contract).
+Requires DSH **>= 0.1.7-alpha.1** (the official transcript view is now owned by the `configForms` service; on 0.1.5 and earlier use 0.4.x).
+
+> **What changed in 0.5:** settings are no longer written to a host file (`~/.dsh/streamfold.json` and the `/streamfold/api/settings` route are gone) — they live in browser localStorage only, so values you already tuned stay put. The 0.1.7 transcript view now has four modes (Compact/Standard/Detailed/Verbose); this plugin appends its own "Fold" entry to that official dropdown and parks the official mode on Verbose while folding, so the two never fight.
 
 Uninstall:
 
@@ -41,13 +43,14 @@ dsh plugin --profile web remove dsh-streamfold
 
 ## Usage
 
-Settings → General → **Conversation display** → choose **Fold** (the third option, replacing the official row):
+Settings → General → **Work details**: the official four modes stay as they are (**Compact / Standard / Detailed / Verbose**) and a fifth, **Fold**, is appended — the one this plugin owns:
 
 | Option | Behaviour |
 | --- | --- |
-| Standard | Official standard (all process rows visible) |
-| Compact | Official compact |
-| Fold | This plugin: one window for the running turn, the rest folds into one line |
+| Compact / Standard / Detailed / Verbose | The official modes, with the official labels and behaviour |
+| Fold | This plugin: one window for the running turn, everything else folds into one line |
+
+Choosing **Fold** parks the official mode on **Verbose**, so the official side neither folds nor groups anything and folding is done by this plugin alone (no double folding). The labels come from the official dictionary, so they follow the official wording.
 
 Dedicated settings page: Settings → **Streamfold** (all switches below, applied immediately).
 
@@ -75,7 +78,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Spark density | 1 | Spark count multiplier (0.2–3): denser costs more to draw (shared by both spark kinds) |
 | Forging sparks | on | Sparks thrown from the writing head while the answer streams; nothing new written, no hammer |
 
-Settings live in browser localStorage and in the host file `~/.dsh/streamfold.json` (route `/streamfold/api/settings`), so a remote Web UI can write them too.
+Settings live in browser localStorage, scoped to the DSH page origin.
 
 ## Diagnostics
 
@@ -93,7 +96,7 @@ When reporting an issue, attach the `probe()` output and your DSH version.
 ## Safety
 
 - Client-side presentation only: it reads the conversation DOM, makes no network requests, touches no credentials and never modifies DSH source.
-- The host half only persists settings to `~/.dsh/streamfold.json` behind a same-origin route `/streamfold/api/settings` (cross-site requests get 403).
+- The host half reads no files and registers no routes: settings stay in browser localStorage, and the official transcript view is read/written through DSH's own settings service (`configForms`).
 - Clean uninstall: the settings row, window markers and injected styles are all removed.
 
 ## Development
@@ -101,7 +104,7 @@ When reporting an issue, attach the `probe()` output and your DSH version.
 - Hand-written, no build: `lib/client.js` (browser half, wrapped in `window.__ModuleLoader__`) and `lib/index.js` (host half).
 - After editing `lib/*.js`, reload the plugin and **refresh the page**.
 - Row anchors use official semantic attributes only: `[data-chat-flow]`, `[data-chat-flow-kind]`, `[data-chat-turn]`, `[data-disclosure-row][aria-expanded]`, `[data-variant=think]`, `[data-tool]`, `[data-sample=bash]`, `[class*=_thinkBody]`, `[class*=_bodyWrap]`, `[data-context-injection-body]` — never CSS module hashes.
-- Verified on DSH 0.1.5-rc.2.
+- Verified on DSH 0.1.7-rc.1.
 
 ## License
 
