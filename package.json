@@ -53,7 +53,8 @@
     "compatibility": {
       "dsh": ">=0.1.7-alpha.1 <0.2.0",
       "dshReleases": {
-        "0.1.7-rc.1": "compatible"
+        "0.1.7-rc.1": "compatible",
+        "0.1.7-rc.2": "compatible"
       },
       "profiles": [
         "web"
