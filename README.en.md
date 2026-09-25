@@ -6,7 +6,7 @@
 
 > A better conversation window: **the newest thinking window opens automatically while a turn runs**, older windows fold themselves, and when the turn finishes the thinking and tool calls fold away — interleaved prose can stay unfolded. Water-like motion throughout.
 
-> **Why this project exists**: the official Compact mode stops folding when a session still has unloaded history; dsh-streamfold folds on its own terms and does not depend on whether history has finished loading.
+**Why this project exists**:
 
 - **Peek at what dsh is thinking right now.** The newest thinking window opens automatically while it works, and the transcript still stays tidy.
 - **Motion.** We wanted an interface that simply feels good to look at: window height, folding and scroll-follow all advance per frame, like water — no jumps. The "back to bottom" button keeps the official look, but **when it shows is decided here** — normal follow lag no longer makes it flicker, and clicking it glides back smoothly.
@@ -31,7 +31,7 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.1.7-alpha.1** (the official transcript view is now owned by the `configForms` service; on 0.1.5 and earlier use 0.4.x).
+Requires DSH **>= 0.1.7-alpha.1** (the official transcript view is now owned by the `configForms` service; for the DSH 0.1.5 series use 0.4.x — v0.4.0 itself declares `>=0.1.5-rc.2`).
 
 > **What changed in 0.5:** settings are no longer written to a host file (`~/.dsh/streamfold.json` and the `/streamfold/api/settings` route are gone) — they live in browser localStorage only, so values you already tuned stay put. The 0.1.7 transcript view now has four modes (Compact/Standard/Detailed/Verbose); this plugin appends its own "Fold" entry to that official dropdown and parks the official mode on Verbose while folding, so the two never fight.
 
@@ -50,7 +50,7 @@ Settings → General → **Work details**: the official four modes stay as they 
 | Compact / Standard / Detailed / Verbose | The official modes, with the official labels and behaviour |
 | Fold | This plugin: one window for the running turn, everything else folds into one line |
 
-Choosing **Fold** parks the official mode on **Verbose**, so the official side neither folds nor groups anything and folding is done by this plugin alone (no double folding). The labels come from the official dictionary, so they follow the official wording.
+Choosing **Fold** parks the official mode on **Verbose**, so the official side neither folds nor groups anything and folding is done by this plugin alone (no double folding). The four official labels come from the official dictionary, so they follow the official wording; the fifth has no official entry and uses the label shipped with this plugin (Fold).
 
 Dedicated settings page: Settings → **Streamfold** (all switches below, applied immediately).
 
@@ -61,8 +61,8 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Setting | Default | Meaning |
 | --- | --- | --- |
 | Fold history turns | on | Off: do not fold past turns on page load (only while a turn runs) |
-| Keep interleaved prose | off | Keep prose rows while folding and give them a capped window (the final answer is never wrapped) |
-| Window height | 260 | Max height of a thinking / interleaved-prose window (px) |
+| Keep interleaved prose | off | Keep prose rows while folding, laid out naturally (no capped window; the final answer is never wrapped either) |
+| Window height | 260 | Max height of the running thinking window (px) |
 | Auto-expand thinking while running | on | Only the newest block of the running turn; superseded windows fold after the grace period |
 | Superseded grace | 2 s | How long an older window waits before folding into a summary line (0–60, decimals allowed) |
 | Auto-expand tools while running | off | Expand the newest tool card using the official card's own disclosure/scroll |
@@ -77,6 +77,8 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Spark colour | #4fa8ff | Spark colour; the core is brightened towards white heat |
 | Spark density | 1 | Spark count multiplier (0.2–3): denser costs more to draw (shared by both spark kinds) |
 | Forging sparks | on | Sparks thrown from the writing head while the answer streams; nothing new written, no hammer |
+| Forging spark speed | 1 | Speed multiplier for the thrown sparks (0.2–4) |
+| Forging spark life | 1.3 | How long one spark lives (0.2–5 s, randomised by ±30%) |
 
 Settings live in browser localStorage, scoped to the DSH page origin.
 
@@ -104,7 +106,7 @@ When reporting an issue, attach the `probe()` output and your DSH version.
 - Hand-written, no build: `lib/client.js` (browser half, wrapped in `window.__ModuleLoader__`) and `lib/index.js` (host half).
 - After editing `lib/*.js`, reload the plugin and **refresh the page**.
 - Row anchors use official semantic attributes only: `[data-chat-flow]`, `[data-chat-flow-kind]`, `[data-chat-turn]`, `[data-disclosure-row][aria-expanded]`, `[data-variant=think]`, `[data-tool]`, `[data-sample=bash]`, `[class*=_thinkBody]`, `[class*=_bodyWrap]`, `[data-context-injection-body]` — never CSS module hashes.
-- Verified on DSH 0.1.7-rc.1.
+- Verified on DSH 0.1.7-rc.1 / 0.1.7-rc.2.
 
 ## License
 
