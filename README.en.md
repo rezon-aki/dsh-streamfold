@@ -15,6 +15,8 @@
 - **Settle on the prompt.** When a turn finishes the view glides back to **the message that started it**, so you never have to scroll up to remember what you asked (skipped if you scrolled away yourself; on by default, can be turned off).
 - **Pin the prompt.** The prompt of the turn you are reading stays pinned to the top of the conversation, one line with an ellipsis; it steps aside while the real row is on screen, and **clicking it glides back to that message** (on by default, can be turned off).
 
+![Fold mode: only the newest thinking window stays open, older and finished process rows fold into one line](https://github.com/rezon-aki/dsh-streamfold/blob/main/screenshots/01-fold.png?raw=true)
+
 ## Why it is light
 
 - **No separate view.** It enhances the official transcript through semantic attributes instead of shipping its own conversation shell, taking over the render pipeline or depending on internal renderer contracts — a small upgrade surface.
@@ -23,8 +25,15 @@
 
 ## Install
 
+**Option 1: the DSH plugin panel (recommended)** — sidebar → **Plugins** → **Add plugin**, paste the line below, then hit “Enable now”:
+
+```
+github:rezon-aki/dsh-streamfold
+```
+
+**Option 2: the command line** (two equivalent forms):
+
 ```bash
-# Two equivalent forms
 dsh plugin --profile web add github:rezon-aki/dsh-streamfold
 dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 ```

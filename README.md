@@ -15,6 +15,8 @@
 - **跑完回到提问处。** 一轮结束，视图平滑滑回**你这轮那句话**的位置——不用自己往上翻找回"我当初问的是什么"（你已经自己上滚过就不动你；可关，默认开）。
 - **置顶显示提问。** 读到哪一轮，那一轮的提问就钉在会话顶端（一行，超出省略）；它自己在屏幕上时自动让位，**点它一下平滑滑回那句发言**（可关，默认开）。
 
+![折叠模式：运行中只留一个思考小窗，旧窗与跑完的过程收成一行](https://github.com/rezon-aki/dsh-streamfold/blob/main/screenshots/01-fold.png?raw=true)
+
 ## 它轻在哪
 
 - **不另开视图。** 直接在官方对话流上做 DOM 增强（靠语义属性定位行），不自己实现会话壳、不接管渲染管线、不依赖内部渲染器契约——升级面小。
@@ -23,8 +25,15 @@
 
 ## 安装
 
+**方式一：DSH 插件面板（推荐）** —— 侧栏 →「**插件**」→「**添加插件**」，粘贴下面这行，装完点「立即启用」：
+
+```
+github:rezon-aki/dsh-streamfold
+```
+
+**方式二：命令行**（两种等价写法）：
+
 ```bash
-# 两种等价写法
 dsh plugin --profile web add github:rezon-aki/dsh-streamfold
 dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 ```
