@@ -1,11 +1,11 @@
 {
   "name": "dsh-streamfold",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "流式折叠：一个更好的会话窗口——运行时自动展开最新思考小窗、旧窗自动折叠，跑完把思考与工具调用折起，全程水流般的动效。",
   "type": "module",
   "main": "./lib/index.js",
   "scripts": {
-    "test": "node test/spark.mjs && node test/contract.mjs && node test/client-apply.mjs"
+    "test": "node test/spark.mjs && node test/contract.mjs && node test/client-apply.mjs && node test/settle.mjs"
   },
   "exports": {
     ".": {
