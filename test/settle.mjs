@@ -454,6 +454,238 @@ await check('S 最新一轮收尾折叠：读者滚到别处（settle 不触发�
   return '视野外收尾折叠也播动画（rows=' + last.rows + '）'
 })
 
+/* ------------- T1：入场动画目标要夹到下边界余量（composer 上沿，用户实测） -- */
+await check('T1 思考小窗入场目标夹到下边界余量（而不是内容高度）', () => {
+  const flow = makeElement('div'); const scroller = makeElement('div')
+  flow.parentElement = scroller; flow.isConnected = true
+  scroller.scrollHeight = 2000; scroller.clientHeight = 800
+  const row = makeRow('1'); row.parentElement = flow; flow.children.push(row)
+  const think = makeElement('div'); think.setAttribute('data-variant', 'think')
+  const body = makeElement('div'); body.className = '_thinkBody'
+  think.appendChild(body); row.appendChild(think); body.parentElement = think
+  think.closest = () => null
+  body.closest = (sel) => (String(sel).includes('data-variant') ? think : null)
+  body.matches = (sel) => /_thinkBody/.test(String(sel))
+  body.getBoundingClientRect = () => ({ top: 700, height: 260, bottom: 960, left: 0, right: 0, width: 0 })   // 窗顶 700、内容高 260 → 底边本该到 960
+  body.scrollHeight = 900; body.clientHeight = 40
+  const seat = makeElement('div')
+  seat.getBoundingClientRect = () => ({ top: 740, height: 60, bottom: 800, left: 0, right: 0, width: 0 })   // composer 上沿 = 740
+  const rows = [row]
+  const tail = makeElement('div'); tail.setAttribute('data-actions-reveal', 'always')   // 这一轮"跑完了" → 不触发收尾滑行（它会带走滚动位置）
+  scroller.querySelector = (sel) => { const s = String(sel); return s.includes('data-composer-seat') ? seat : (s.includes('data-turn-tail') ? tail : null) }
+  flow.querySelector = () => null
+  // chatScope() 给的是滚动容器：正文/行都要从它身上查得到
+  const qa = (sel) => { const s = String(sel); return s.includes('_thinkBody') ? [body] : (s.includes('data-chat-flow-kind') ? rows : []) }
+  scroller.querySelectorAll = qa; flow.querySelectorAll = qa
+  scroller.contains = () => true; scroller.closest = () => null
+  flow.contains = () => true; flow.closest = () => null
+  const b = build({
+    rows,
+    patch(doc, sandbox) {
+      doc.querySelector = (sel) => (String(sel).includes('data-chat-flow') ? flow : null)
+      doc.querySelectorAll = (sel) => (String(sel).includes('data-chat-flow-kind') ? rows : (String(sel).includes('data-chat-flow') ? [flow] : []))
+      stubScroll(sandbox, scroller, null, true)   // 让 scrollTop 走"容器访问器"（store 支持）：takeOverSnap 换上的实例访问器读的就是它
+    },
+  })
+  const api = b.api()
+  api.set({ mode: 'fold' }); api.scan()
+  eq(body.dataset.dshsfWindow, 'reasoning', '前置：思考正文该被打成小窗；')
+  eq(body.style.getPropertyValue('--dshsf-hw'), '40px', '入场目标要夹到下边界余量（740−700），不是内容高 260px；')
+  eq(body.dataset.dshsfH, '40', '窗口目标高度同样夹住；')
+  return '入场目标 40px（内容 260px）'
+})
+
+/* ------------- T2：跟随中「窗往上长、底边钉住」；读者接管后只夹高度 -- */
+await check('T2 跟随中小窗往上长、底边钉在下边界（且不会因此长不大）', () => {
+  const flow = makeElement('div'); const scroller = makeElement('div')
+  flow.parentElement = scroller; flow.isConnected = true
+  scroller.clientHeight = 800
+  const TOP = 1900                                   // 窗顶在内容坐标：视口 y = TOP − scrollTop
+  const row = makeRow('1'); row.parentElement = flow; flow.children.push(row)
+  const think = makeElement('div'); think.setAttribute('data-variant', 'think')
+  const body = makeElement('div'); body.className = '_thinkBody'
+  think.appendChild(body); row.appendChild(think); body.parentElement = think
+  think.closest = () => null
+  body.closest = (sel) => (String(sel).includes('data-variant') ? think : null)
+  body.matches = (sel) => /_thinkBody/.test(String(sel))
+  const rendered = () => parseFloat(body.style.maxHeight) || 0            // 桩里渲染高度＝我们写的 max-height
+  const bodyTop = () => TOP - scroller.scrollTop
+  body.getBoundingClientRect = () => ({ top: bodyTop(), height: rendered(), bottom: bodyTop() + rendered(), left: 0, right: 0, width: 0 })
+  body.scrollHeight = 900; body.clientHeight = 40
+  const seat = makeElement('div')                    // composer：sticky 盖在滚动口底部 → 上沿在视口里固定
+  seat.getBoundingClientRect = () => ({ top: 740, height: 60, bottom: 800, left: 0, right: 0, width: 0 })
+  const rows = [row]
+  const tail = makeElement('div'); tail.setAttribute('data-actions-reveal', 'always')   // 这一轮"跑完了" → 不触发收尾滑行（它会带走滚动位置）
+  scroller.querySelector = (sel) => { const s = String(sel); return s.includes('data-composer-seat') ? seat : (s.includes('data-turn-tail') ? tail : null) }
+  flow.querySelector = () => null
+  const qa = (sel) => { const s = String(sel); return s.includes('_thinkBody') ? [body] : (s.includes('data-chat-flow-kind') ? rows : []) }
+  scroller.querySelectorAll = qa; flow.querySelectorAll = qa
+  scroller.contains = () => true; scroller.closest = () => null
+  flow.contains = () => true; flow.closest = () => null
+  const b = build({
+    rows,
+    patch(doc, sandbox) {
+      doc.querySelector = (sel) => (String(sel).includes('data-chat-flow') ? flow : null)
+      doc.querySelectorAll = (sel) => (String(sel).includes('data-chat-flow-kind') ? rows : (String(sel).includes('data-chat-flow') ? [flow] : []))
+      stubScroll(sandbox, scroller, null, true)   // scrollTop 走容器访问器（store 支持）：takeOverSnap 换上的实例访问器读的就是它
+      // 真 DOM 里窗口长高＝内容长高：scrollHeight 跟着渲染高度走（否则底边补偿写不进去）
+      Object.defineProperty(scroller, 'scrollHeight', { configurable: true, get: () => 2000 + rendered() })
+      scroller.scrollTop = 1160                      // floor = 1200 + 窗高：起点离底 40px（跟随会先写一笔 → followWrote 非空）
+    },
+  })
+  const api = b.api()
+  api.set({ mode: 'fold' }); api.scan()
+  eq(body.dataset.dshsfWindow, 'reasoning', '前置：思考正文该被打成小窗；')
+  let peak = 0
+  for (let i = 0; i < 120; i += 1) { b.frame(16); peak = Math.max(peak, bodyTop() + rendered()) }
+  const h = rendered()
+  if (!(h > 259)) throw new Error('跟随中被夹住长不大（底边补偿没生效）：maxHeight=' + body.style.maxHeight)
+  if (peak > 740.6) throw new Error('长高的过程中底边越过了 composer 上沿：峰值 bottom=' + peak.toFixed(1))
+  if (scroller.scrollTop < 1418) throw new Error('视图没跟着窗往上走：scrollTop=' + scroller.scrollTop)
+  // 读者接管后位置不是我们的：只夹高度、不动人家的位置
+  api.set({ autoFollow: false }); scroller.scrollTop = 1160; api.scan()
+  for (let i = 0; i < 400; i += 1) b.frame(16)
+  eq(scroller.scrollTop, 1160, '不跟随时不许动滚动位置；')
+  eq(body.style.maxHeight, '16px', '不跟随时把窗夹到下边界余量（此刻余量 0 → 最小高度 16px）；')
+  return '跟随中长到 ' + h.toFixed(0) + 'px、底边峰值 ' + peak.toFixed(1) + ' 钉在 740 · 接管后只夹高度'
+})
+
+/* -------- T3：窗就是最下面那块内容、且已经贴底（没有滞后余量）时，仍要能长到上限 -- */
+await check('T3 贴底且没有滞后余量时，小窗仍要长到上限（不许被"余量"夹死）', () => {
+  const flow = makeElement('div'); const scroller = makeElement('div')
+  flow.parentElement = scroller; flow.isConnected = true
+  scroller.clientHeight = 800
+  const TOP = 1900
+  const row = makeRow('1'); row.parentElement = flow; flow.children.push(row)
+  const think = makeElement('div'); think.setAttribute('data-variant', 'think')
+  const body = makeElement('div'); body.className = '_thinkBody'
+  think.appendChild(body); row.appendChild(think); body.parentElement = think
+  think.closest = () => null
+  body.closest = (sel) => (String(sel).includes('data-variant') ? think : null)
+  body.matches = (sel) => /_thinkBody/.test(String(sel))
+  const rendered = () => parseFloat(body.style.maxHeight) || 0
+  const bodyTop = () => TOP - scroller.scrollTop
+  body.getBoundingClientRect = () => ({ top: bodyTop(), height: rendered(), bottom: bodyTop() + rendered(), left: 0, right: 0, width: 0 })
+  body.scrollHeight = 900; body.clientHeight = 40
+  const seat = makeElement('div')
+  seat.getBoundingClientRect = () => ({ top: 740, height: 60, bottom: 800, left: 0, right: 0, width: 0 })
+  const rows = [row]
+  const tail = makeElement('div'); tail.setAttribute('data-actions-reveal', 'always')
+  scroller.querySelector = (sel) => { const s = String(sel); return s.includes('data-composer-seat') ? seat : (s.includes('data-turn-tail') ? tail : null) }
+  flow.querySelector = () => null
+  const qa = (sel) => { const s = String(sel); return s.includes('_thinkBody') ? [body] : (s.includes('data-chat-flow-kind') ? rows : []) }
+  scroller.querySelectorAll = qa; flow.querySelectorAll = qa
+  scroller.contains = () => true; scroller.closest = () => null
+  flow.contains = () => true; flow.closest = () => null
+  const b = build({
+    rows,
+    patch(doc, sandbox) {
+      doc.querySelector = (sel) => (String(sel).includes('data-chat-flow') ? flow : null)
+      doc.querySelectorAll = (sel) => (String(sel).includes('data-chat-flow-kind') ? rows : (String(sel).includes('data-chat-flow') ? [flow] : []))
+      stubScroll(sandbox, scroller, null, true)
+      // base 1960 = 贴底时窗底边正好压在下边界上（余量 ≡ 窗高）：这正是"只夹高度会把窗夹死"的临界摆放
+      Object.defineProperty(scroller, 'scrollHeight', { configurable: true, get: () => 1960 + rendered() })
+      scroller.scrollTop = 1160
+    },
+  })
+  const api = b.api()
+  api.set({ mode: 'fold' }); api.scan()
+  eq(body.dataset.dshsfWindow, 'reasoning', '前置：思考正文该被打成小窗；')
+  let peak = 0
+  for (let i = 0; i < 120; i += 1) { b.frame(16); peak = Math.max(peak, bodyTop() + rendered()) }
+  const h = rendered()
+  if (!(h > 259)) throw new Error('贴底无余量时被夹住长不大（这是"只夹高度"那条错路）：maxHeight=' + body.style.maxHeight)
+  if (peak > 740.6) throw new Error('长高的过程中底边越过了 composer 上沿：峰值 bottom=' + peak.toFixed(1))
+  return '长到 ' + h.toFixed(0) + 'px、底边峰值 ' + peak.toFixed(1) + ' 钉在 740'
+})
+
+/* -------- T4：正文一挂上来就当场打小窗（不等 300ms 节流扫描） -- */
+await check('T4 新挂载的思考正文在 MutationObserver 里当场打小窗', () => {
+  const flow = makeElement('div'); const scroller = makeElement('div')
+  flow.parentElement = scroller; flow.isConnected = true
+  scroller.scrollHeight = 2000; scroller.clientHeight = 800
+  const row = makeRow('1'); row.parentElement = flow; flow.children.push(row)
+  const think = makeElement('div'); think.setAttribute('data-variant', 'think')
+  const body = makeElement('div'); body.className = '_thinkBody'
+  think.appendChild(body); row.appendChild(think); body.parentElement = think
+  think.closest = () => null
+  body.closest = (sel) => (String(sel).includes('data-variant') ? think : null)
+  body.matches = (sel) => /_thinkBody/.test(String(sel))
+  body.getBoundingClientRect = () => ({ top: 700, height: 260, bottom: 960, left: 0, right: 0, width: 0 })
+  body.scrollHeight = 900; body.clientHeight = 40
+  const seat = makeElement('div')
+  seat.getBoundingClientRect = () => ({ top: 740, height: 60, bottom: 800, left: 0, right: 0, width: 0 })
+  const rows = [row]
+  const tail = makeElement('div'); tail.setAttribute('data-actions-reveal', 'always')
+  scroller.querySelector = (sel) => { const s = String(sel); return s.includes('data-composer-seat') ? seat : (s.includes('data-turn-tail') ? tail : null) }
+  flow.querySelector = () => null
+  const qa = (sel) => { const s = String(sel); return s.includes('_thinkBody') ? [body] : (s.includes('data-chat-flow-kind') ? rows : []) }
+  scroller.querySelectorAll = qa; flow.querySelectorAll = qa
+  scroller.contains = () => true; scroller.closest = () => null
+  flow.contains = () => true; flow.closest = () => null
+  const b = build({
+    rows,
+    patch(doc, sandbox) {
+      doc.querySelector = (sel) => (String(sel).includes('data-chat-flow') ? flow : null)
+      doc.querySelectorAll = (sel) => (String(sel).includes('data-chat-flow-kind') ? rows : (String(sel).includes('data-chat-flow') ? [flow] : []))
+      stubScroll(sandbox, scroller, null, true)
+    },
+  })
+  const api = b.api()
+  api.set({ mode: 'fold' })
+  eq(body.dataset.dshsfWindow, undefined, '前置：还没打标；')
+  b.fireMutations([{ type: 'childList', target: flow, addedNodes: [body] }])   // 只给观察器，不调 api.scan()
+  eq(body.dataset.dshsfWindow, 'reasoning', '新挂上来的正文必须当场打小窗（等扫描它会先按原始高度铺开 = 掉一下）；')
+  eq(body.style.getPropertyValue('--dshsf-hw'), '40px', '当场打标也要按余量夹住入场目标；')
+  return '观察器当场打标（40px）'
+})
+
+/* -------- T5：入场动画期间不许把目标高度推过动画落点 -- */
+await check('T5 入场动画期间目标高度不越过动画落点（动画一结束不再跳一下）', () => {
+  const flow = makeElement('div'); const scroller = makeElement('div')
+  flow.parentElement = scroller; flow.isConnected = true
+  scroller.scrollHeight = 2000; scroller.clientHeight = 800
+  const row = makeRow('1'); row.parentElement = flow; flow.children.push(row)
+  const think = makeElement('div'); think.setAttribute('data-variant', 'think')
+  const body = makeElement('div'); body.className = '_thinkBody'
+  think.appendChild(body); row.appendChild(think); body.parentElement = think
+  think.closest = () => null
+  body.closest = (sel) => (String(sel).includes('data-variant') ? think : null)
+  body.matches = (sel) => /_thinkBody/.test(String(sel))
+  body.getBoundingClientRect = () => ({ top: 700, height: 260, bottom: 960, left: 0, right: 0, width: 0 })
+  body.scrollHeight = 900; body.clientHeight = 40
+  const seat = makeElement('div')
+  seat.getBoundingClientRect = () => ({ top: 740, height: 60, bottom: 800, left: 0, right: 0, width: 0 })
+  const rows = [row]
+  const tail = makeElement('div'); tail.setAttribute('data-actions-reveal', 'always')
+  scroller.querySelector = (sel) => { const s = String(sel); return s.includes('data-composer-seat') ? seat : (s.includes('data-turn-tail') ? tail : null) }
+  flow.querySelector = () => null
+  const qa = (sel) => { const s = String(sel); return s.includes('_thinkBody') ? [body] : (s.includes('data-chat-flow-kind') ? rows : []) }
+  scroller.querySelectorAll = qa; flow.querySelectorAll = qa
+  scroller.contains = () => true; scroller.closest = () => null
+  flow.contains = () => true; flow.closest = () => null
+  const b = build({
+    rows,
+    patch(doc, sandbox) {
+      doc.querySelector = (sel) => (String(sel).includes('data-chat-flow') ? flow : null)
+      doc.querySelectorAll = (sel) => (String(sel).includes('data-chat-flow-kind') ? rows : (String(sel).includes('data-chat-flow') ? [flow] : []))
+      stubScroll(sandbox, scroller, null, true)
+    },
+  })
+  const api = b.api()
+  b.fireWindow('pointerdown', { type: 'pointerdown' })          // 开动效：allowAnim → rootVars 会给 html 挂 data-dshsf-anim
+  api.set({ mode: 'fold' }); api.scan()
+  eq(b.documentElement.hasAttribute('data-dshsf-anim'), true, '前置：动效该开着（没有入场动画这条就没意义）；')
+  eq(body.dataset.dshsfEntering, '1', '前置：入场动画期间该有 entering 标记；')
+  eq(body.dataset.dshsfEnterH, '40', '前置：动画落点 = 余量 40px；')
+  for (let i = 0; i < 20; i += 1) b.frame(16)
+  eq(body.style.maxHeight, '40px', '动画没跑完之前不许把目标推过去（否则动画一结束整块落地 = 掉一下）；')
+  delete body.dataset.dshsfEntering                              // 真机是 320ms 的定时器清的
+  for (let i = 0; i < 20; i += 1) b.frame(16)
+  if (!(parseFloat(body.style.maxHeight) > 100)) throw new Error('动画结束后必须接着长（别把窗冻住）：' + body.style.maxHeight)
+  return '动画期间钉在 40px，结束后接着长到 ' + body.style.maxHeight
+})
+
 let bad = 0
 for (const [st, name, note] of results) { if (st === 'FAIL') bad += 1; console.log(st.padEnd(4), name, note ? '| ' + note : '') }
 if (bad) { console.log('settle: ' + bad + ' FAIL'); process.exit(1) }
