@@ -436,6 +436,24 @@ await check('B4 点折叠条展开：整批 5 行都播动画（不受 animBudge
   return '整批 5 行都播动画'
 })
 
+/* ------------------------- S：最新一轮的收尾折叠，视野外也要有动效 -- */
+await check('S 最新一轮收尾折叠：读者滚到别处（settle 不触发）也要播动画', () => {
+  const f = settleFixture()
+  const api = f.api
+  f.b.frame(16); f.b.frame(16)                                  // 先让帧循环把 scroll 监听挂到容器上
+  f.scroller.scrollTop = 200                                   // 读者滚到别处
+  f.scroller.fire('scroll')                                    // 真实滚动事件 → 读者接管（followOn=false）
+  eq(api.probe().mainFollow.on, false, '前置：跟随应已被读者接管；')
+  f.finishTurn()
+  const settle = api.probe().settleLog.slice(-1)[0]
+  eq(settle.why, 'not-at-bottom', '前置：这次不该滑回提问处（读者在别处）：' + JSON.stringify(settle))
+  const last = api.probe().foldLog.slice(-1)[0]
+  if (!last || last.rows <= 3) throw new Error('桩环境没造出「一次折 >3 行」：' + JSON.stringify(last))
+  eq(last.force, true, '刚跑完那一轮该走强制动画批次：' + JSON.stringify(last))
+  eq(last.flat, false, '最新一轮的收尾折叠哪怕在视野外也要播动画：' + JSON.stringify(last))
+  return '视野外收尾折叠也播动画（rows=' + last.rows + '）'
+})
+
 let bad = 0
 for (const [st, name, note] of results) { if (st === 'FAIL') bad += 1; console.log(st.padEnd(4), name, note ? '| ' + note : '') }
 if (bad) { console.log('settle: ' + bad + ' FAIL'); process.exit(1) }
