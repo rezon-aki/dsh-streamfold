@@ -1,5 +1,7 @@
 # dsh-streamfold · 流式折叠
 
+**简体中文** · [English](README.en.md)
+
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![format](https://img.shields.io/badge/format-DSH%20bundle-blueviolet.svg)](cordis.patch.yml)
 [![tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](test/spark.mjs)

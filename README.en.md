@@ -1,5 +1,7 @@
 # dsh-streamfold
 
+[简体中文](README.md) · **English**
+
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![format](https://img.shields.io/badge/format-DSH%20bundle-blueviolet.svg)](cordis.patch.yml)
 [![tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](test/spark.mjs)

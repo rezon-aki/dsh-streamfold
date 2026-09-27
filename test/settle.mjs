@@ -184,6 +184,7 @@ function settleFixture({ userTop = 1150 } = {}) {
   toolRoot.nextElementSibling = toolBody
   const pick = (sel) => {
     const t = String(sel)
+    if (t.includes('data-dshsf-folded')) return rows.find((r) => r.hasAttribute('data-dshsf-folded')) || null   // 真 DOM 里问"有没有已折的行"就该命中
     if (t.includes('data-turn-tail')) return tail
     if (t.includes('data-state') || t.includes('data-streaming')) return state.running ? marker : null
     return null
@@ -198,9 +199,11 @@ function settleFixture({ userTop = 1150 } = {}) {
   flow.contains = () => true
   flow.closest = () => null
   let writes = 0
+  let sandboxRef = null
   const b = build({
     rows,
     patch(doc, sandbox) {
+      sandboxRef = sandbox
       doc.querySelector = (sel) => (String(sel).includes('data-chat-flow') ? flow : (String(sel).includes('data-conversation-session') ? sideHolder : null))
       doc.querySelectorAll = (sel) => (String(sel).includes('data-chat-flow-kind') ? rows : (String(sel).includes('data-chat-flow') ? [flow] : []))
       const origCreate = doc.createElement
@@ -216,7 +219,7 @@ function settleFixture({ userTop = 1150 } = {}) {
     state.running = false; api.scan(); b.frame(800)
     api.scan()
   }
-  return { b, api, scroller, rows, toolRows, toolRow, userRow, mainHolder, sideHolder, created, toolRoot, toolBody, writes: () => writes, finishTurn, state }
+  return { b, api, scroller, rows, toolRows, toolRow, userRow, mainHolder, sideHolder, created, toolRoot, toolBody, sandbox: () => sandboxRef, writes: () => writes, finishTurn, state }
 }
 
 await check('N 跑完回到提问处：贴底就起滑，滑行结束前不折，滑完才折，且不被吸回底部', () => {
@@ -225,7 +228,7 @@ await check('N 跑完回到提问处：贴底就起滑，滑行结束前不折�
   for (let i = 0; i < 3; i += 1) f.b.frame(16)
   if (f.api.probe().mainFollow.on !== true) throw new Error('桩环境没把跟随带起来')
   f.scroller.scrollTop = 1000; f.api.scan()
-  for (let i = 0; i < 5; i += 1) f.b.frame(16)
+  for (let i = 0; i < 5; i += 1) f.b.frame(16)   // 让跟随真的写几帧 → 位置所有权在我们手里
   f.scroller.scrollTop = 300
   const blockedFar = f.api.probe().mainFollow.blocked
   f.scroller.scrollTop = 1200
@@ -364,6 +367,73 @@ await check('R React 复用行节点后 hasText 必须重算（否则承载正�
   eq(e2.hasAttribute('data-dshsf-folded'), false, '复用后必须重算：现在有正文的是 e2，它绝不能被折掉；')
   eq(e1.hasAttribute('data-dshsf-folded'), true, '复用后：空掉的 e1 才该被折；')
   return 'hasText 随变更行作废缓存'
+})
+
+/* ------------------------------------------- A2：帧内回补不许按 600px 放弃 -- */
+await check('A2 跟随中「单帧长高 >600px」的抢跑也要回补（回补不再受 600px 限制）', () => {
+  const f = settleFixture()
+  const api = f.api
+  api.set({ mode: 'fold' }); api.scan()
+  f.scroller.scrollTop = 200                      // 离开底部一段，让帧循环写出跟随点
+  api.scan()
+  for (let i = 0; i < 2; i += 1) f.b.frame(16)    // 只追两帧 → 离底仍 >600px（才是要验的场景）
+  const mf = () => api.probe().mainFollow
+  const wrote = mf().wrote
+  if (wrote === null) throw new Error('桩环境没建立跟随写入点（followWrote 为空）')
+  const floor = f.scroller.scrollHeight - f.scroller.clientHeight
+  if (floor - wrote <= 600) throw new Error('桩环境没造出 >600px 的回补场景：wrote=' + wrote)
+  // 绕过我们自己的 scrollTop 访问器，像浏览器/官方那样直接改位置 = 一帧长高 >600px 把位置甩到底
+  const desc = Object.getOwnPropertyDescriptor(f.sandbox().Element.prototype, 'scrollTop')
+  desc.set.call(f.scroller, floor)
+  const undo0 = mf().undo
+  f.b.frame(16)
+  eq(mf().undo, undo0 + 1, '跟随中一记远处抢跑也要回补（原先 floor−followWrote>600 就直接放弃）；')
+  // 回补后同一帧还会按追赶公式再推进一小步，所以只要求「明显没被甩到底」（原先会停在 floor）
+  if (f.scroller.scrollTop >= floor - 400) throw new Error('抢跑没被回补，位置仍贴在底部：' + f.scroller.scrollTop + '（floor=' + floor + '，跟随点=' + wrote + '）')
+  return '远处抢跑也回补到跟随点（wrote=' + wrote + '）'
+})
+
+/* ------------------------------------- B2：scanAnimateAll 不许跨扫描存活 -- */
+await check('B2 scanAnimateAll 不跨扫描存活（官方档那次早退也要复位）', () => {
+  const f = settleFixture()
+  const api = f.api
+  api.set({ mode: 'fold' }); api.scan()                       // 折上 5 行 + 造出折叠条
+  const first = api.probe().foldLog.slice(-1)[0]
+  if (!first || first.rows <= 3) throw new Error('桩环境没造出「一次折 >3 行」：' + JSON.stringify(first))
+  eq(first.flat, true, '没人看着的整批折叠该走瞬时：' + JSON.stringify(first))
+  const chip = f.created.find((el) => String(el.id || '').startsWith('dshsf-chip'))
+  if (!chip) throw new Error('没找到折叠条')
+  api.set({ mode: 'native' })                                 // 下一次扫描会走官方档早退分支
+  chip.fire('click')                                           // 点折叠条会置 scanAnimateAll → 紧跟的 scan() 早退
+  eq(api.probe().animAll, false, '官方档那次早退也必须复位 scanAnimateAll（否则下一次整批折叠会白播动画）；')
+  return '跨扫描不残留（animAll 已复位，rows=' + first.rows + '）'
+})
+
+/* ----------------------------------- A3：交还档位时作废 settle hold -- */
+await check('A3 切官方档交还时作废 settle hold', () => {
+  const f = settleFixture()
+  const api = f.api
+  f.scroller.scrollTop = 1200
+  for (let i = 0; i < 3; i += 1) f.b.frame(16)
+  f.finishTurn()
+  if (api.probe().settleHold === null) throw new Error('桩环境没造出 hold')
+  api.set({ mode: 'native' }); api.scan()
+  eq(api.probe().settleHold, null, '交还档位（releaseTakeover）必须把上一轮的 settle hold 一起作废；')
+  return '交还时清 hold'
+})
+
+/* --------------------------- B4：用户手点的整批展开不受动画配额限制 -- */
+await check('B4 点折叠条展开：整批 5 行都播动画（不受 animBudget=3 截断）', () => {
+  const f = settleFixture()
+  const api = f.api
+  api.set({ mode: 'fold' }); api.scan()                       // 折上 5 行
+  eq(f.toolRows.filter((r) => r.hasAttribute('data-dshsf-folded')).length, 5, '前置：5 行都该已折；')
+  const chip = f.created.find((el) => String(el.id || '').startsWith('dshsf-chip'))
+  if (!chip) throw new Error('没找到折叠条')
+  chip.fire('click')                                           // manual=open → 展开（同步扫一次，不跑帧）
+  const animated = f.toolRows.filter((r) => r.style.maxHeight === '0px').length   // 动画起点是 0px；瞬时路径是 ''
+  eq(animated, 5, '用户手点的整批展开都该走动画（原先 animBudget=3 只放行前 3 行）：animated=' + animated)
+  return '整批 5 行都播动画'
 })
 
 let bad = 0
