@@ -30,7 +30,7 @@
 **Option 1: the DSH plugin panel (recommended)** — sidebar → **Plugins** → **Add plugin**, paste the line below, then hit “Enable now”:
 
 ```
-github:rezon-aki/dsh-streamfold
+dsh-streamfold
 ```
 
 **Option 2: the command line** (two equivalent forms):
