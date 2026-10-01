@@ -31,7 +31,7 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.1.7-alpha.1** (the official transcript view is now owned by the `configForms` service; on 0.1.5 and earlier use 0.4.x).
+Requires DSH **>= 0.2.0-rc.2** (the official transcript view is owned by the `configForms` service; on the **0.1.7 series use 0.5.0**, and on 0.1.5 and earlier use 0.4.x).
 
 > **What changed in 0.5:** settings are no longer written to a host file (`~/.dsh/streamfold.json` and the `/streamfold/api/settings` route are gone) — they live in browser localStorage only, so values you already tuned stay put. The 0.1.7 transcript view now has four modes (Compact/Standard/Detailed/Verbose); this plugin appends its own "Fold" entry to that official dropdown and parks the official mode on Verbose while folding, so the two never fight.
 
@@ -104,7 +104,7 @@ When reporting an issue, attach the `probe()` output and your DSH version.
 - Hand-written, no build: `lib/client.js` (browser half, wrapped in `window.__ModuleLoader__`) and `lib/index.js` (host half).
 - After editing `lib/*.js`, reload the plugin and **refresh the page**.
 - Row anchors use official semantic attributes only: `[data-chat-flow]`, `[data-chat-flow-kind]`, `[data-chat-turn]`, `[data-disclosure-row][aria-expanded]`, `[data-variant=think]`, `[data-tool]`, `[data-sample=bash]`, `[class*=_thinkBody]`, `[class*=_bodyWrap]`, `[data-context-injection-body]` — never CSS module hashes.
-- Verified on DSH 0.1.7-rc.1.
+- Targets DSH 0.2.0-rc.2 (on the 0.1.7 series use 0.5.0).
 
 ## License
 

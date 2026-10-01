@@ -33,7 +33,7 @@ function makeElement(tag = 'div') {
     hasAttribute: (k) => attrs.has(k),
     toggleAttribute(k, on) { if (on) attrs.set(k, ''); else attrs.delete(k); return attrs.has(k) },
     addEventListener() {}, removeEventListener() {}, dispatchEvent() { return true },
-    querySelector: () => null, querySelectorAll: () => [], matches: () => false, closest: () => null, contains: () => false,
+    querySelector: () => null, querySelectorAll: () => [], getElementsByTagName: () => [], matches: () => false, closest: () => null, contains: () => false,
     getBoundingClientRect: () => ({ top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 }),
   }
 }
@@ -48,6 +48,7 @@ const documentStub = {
   getElementById: () => null,
   querySelector: () => null,
   querySelectorAll: () => [],
+  getElementsByTagName: () => [],
   addEventListener() {}, removeEventListener() {}, contains: () => true,
 }
 

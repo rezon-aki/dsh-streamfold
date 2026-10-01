@@ -431,5 +431,9 @@ ok(out.forge.release.parts === 0 && out.forge.release.fields === 0, "火星烧�
 ok(out.forge.idleParts === 0 && out.forge.idleBusy === 0, "正文停写后还在砸：" + fmt(out.forge));
 ok(out.forge.maxStrokes <= out.forge.parts.max * 2 + 8, "锻打每帧描边超预算：" + out.forge.maxStrokes + " vs parts " + out.forge.parts.max);
 ok(out.color.hex.join() === "90,176,255" && out.color.short.join() === "68,170,255" && out.color.rgb.join() === "10,20,30" && out.color.junk.join() === "1,2,3", "颜色解析不对：" + fmt(out.color));
+/* 火星层级护栏：画布是 body 上的 fixed 层，与官方界面同处根堆叠上下文（composer 座位 7、设置遮罩 1000）——
+   必须「正文之上、界面之下」：1 < z-index < 7。负向对照：改回 9999 立刻红。 */
+const sparkZ = Number((bundle.match(/\[data-dshsf-spark\]\{[^}]*z-index:(\d+)/) || [])[1]);
+ok(sparkZ > 1 && sparkZ < 7, "火星层级不在正文之上、界面之下（1<z<7）：" + sparkZ);
 console.log(fail.length ? "\nFAIL\n- " + fail.join("\n- ") : "\nALL PASS (" + checked + " assertions)");
 process.exit(fail.length ? 1 : 0);

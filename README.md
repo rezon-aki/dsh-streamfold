@@ -31,7 +31,7 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 装完重启 profile，然后**刷新浏览器页面**（客户端代码在页面加载时注入）。
 
-要求 DSH **>= 0.1.7-alpha.1**（官方「对话显示」档位改由 `configForms` 服务托管；0.1.5 及更早请用 0.4.x）。
+要求 DSH **>= 0.2.0-rc.2**（官方「对话显示」档位由 `configForms` 服务托管；**0.1.7 系列请用 0.5.0**，0.1.5 及更早请用 0.4.x）。
 
 > **0.4 → 0.5 的变化**：设置不再写宿主文件（`~/.dsh/streamfold.json` 与 `/streamfold/api/settings` 路由已移除），改为只存浏览器 localStorage——你在页面上已经调好的值不受影响；0.1.7 把「对话显示」换成四档（简洁/标准/详细/完全展开），本插件把「折叠」作为第五项接在官方下拉里，选它时官方自动停在「完全展开」，两层折叠不会打架。
 
@@ -106,7 +106,7 @@ __dshStreamfold.set({ smoothGrow: 0.1, supersedeDelay: 3 })
 - 手写、无构建：`lib/client.js`（浏览器半区，包在 `window.__ModuleLoader__` 里）、`lib/index.js`（宿主半区）。
 - 改完 `lib/*.js` 重载插件并**刷新页面**。
 - 行锚点全部用官方语义属性：`[data-chat-flow]`、`[data-chat-flow-kind]`、`[data-chat-turn]`、`[data-disclosure-row][aria-expanded]`、`[data-variant=think]`、`[data-tool]`、`[data-sample=bash]`、`[class*=_thinkBody]`、`[class*=_bodyWrap]`、`[data-context-injection-body]`——不用 CSS module 哈希。
-- 已在 DSH 0.1.7-rc.1 验证。
+- 目标环境 DSH 0.2.0-rc.2（0.1.7 系列请用 0.5.0）。
 
 ## License
 
