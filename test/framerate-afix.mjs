@@ -1,3 +1,4 @@
+// DEPRECATED 2026-10-02: 判据已被证伪（空断言/零样本默认 1.000/无参数即崩），不得作为验收依据。见 FINAL-DECISION-TABLE.md C5。
 /**
  * A1–A7 帧率矩阵分析器（M4 / task-24）。
  *   node test/framerate-afix.mjs <jsonl...> [--md out.md]
