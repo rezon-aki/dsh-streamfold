@@ -36,7 +36,7 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 dsh-streamfold
 ```
 
-> The panel installs this version (npm `latest` is 0.7.0, with provenance). Option 2 is for tracking the repository's latest code.
+> The panel installs this version (npm `latest` is this release, with provenance). Option 2 is for tracking the repository's latest code.
 
 **Option 2: the command line** (three forms):
 

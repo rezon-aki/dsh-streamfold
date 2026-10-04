@@ -36,7 +36,7 @@
 dsh-streamfold
 ```
 
-> 面板装的就是本版（npm 上 `latest` = 0.7.0，含 provenance）。方式二适合想跟仓库最新代码的人。
+> 面板装的就是本版（npm 上 `latest` 即本版，含 provenance）。方式二适合想跟仓库最新代码的人。
 
 **方式二：命令行**（三种写法）：
 
