@@ -14,10 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # 注意：不要给 setup-node 传 registry-url——它会写一个带占位 NODE_AUTH_TOKEN 的 .npmrc，
+      # 从而顶掉 OIDC（表现为 PUT 404 / 无权限）。Trusted Publishing 要的就是「没有 token」。
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
       - name: Use npm CLI with trusted publishing support
         run: npm install -g npm@latest
       - name: Publish to npm (trusted publishing, no token/OTP)
