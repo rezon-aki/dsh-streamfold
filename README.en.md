@@ -36,18 +36,19 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 dsh-streamfold
 ```
 
-> ⚠️ The panel installs by **npm package name**, and npm still serves the old line at **0.5.7**; this **0.7.0 has not been published to npm yet**. Until it is, install this version with Option 2 (`github:` / URL).
+> The panel installs this version (npm `latest` is 0.7.0, with provenance). Option 2 is for tracking the repository's latest code.
 
-**Option 2: the command line** (two equivalent forms):
+**Option 2: the command line** (three forms):
 
 ```bash
-dsh plugin --profile web add github:rezon-aki/dsh-streamfold
+dsh plugin --profile web add dsh-streamfold                     # npm package (recommended)
+dsh plugin --profile web add github:rezon-aki/dsh-streamfold    # track the repository
 dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 ```
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.2.0-rc.2** (the official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x). Once 0.7.0 is on npm, Option 2 can be shortened to `dsh plugin --profile web add dsh-streamfold`, and pasting `dsh-streamfold` in the panel installs this version.
+Requires DSH **>= 0.2.0-rc.2** (the official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x).
 
 Uninstall: remove it in the plugin panel, or
 

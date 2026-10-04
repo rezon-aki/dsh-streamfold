@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write        # OIDC：Trusted Publishing 必需
+  id-token: write        # OIDC：Trusted Publishing 必需（无需 token/OTP）
 
 jobs:
   publish:
@@ -18,13 +18,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Use npm CLI with trusted publishing support
-        run: npm install -g npm@latest
-      - name: Diagnose OIDC availability
-        run: |
-          echo "npm: $(npm --version)"
-          echo "registry: $(npm config get registry)"
-          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then echo ID_TOKEN_URL_SET=yes; else echo ID_TOKEN_URL_SET=no; fi
-          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then echo ID_TOKEN_REQ_SET=yes; else echo ID_TOKEN_REQ_SET=no; fi
-      - name: Publish to npm (trusted publishing, no token/OTP)
-        run: npm publish --access public
+      - run: npm install -g npm@latest
+      - run: npm publish --access public
