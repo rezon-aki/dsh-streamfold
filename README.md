@@ -30,15 +30,26 @@
 
 ## 安装
 
+**方式一：DSH 插件面板（推荐）** —— 侧栏 →「**插件**」→「**添加插件**」，粘贴下面这一行，装完点「立即启用」：
+
+```
+dsh-streamfold
+```
+
+> ⚠️ 面板按 **npm 包名**安装，而 npm 上目前最新仍是旧线的 **0.5.7**，本版 **0.7.0 尚未发布到 npm**。在 0.7.0 发布前，请用方式二（`github:` / URL）安装本版。
+
+**方式二：命令行**（两种等价写法）：
+
 ```bash
-dsh plugin --profile web add dsh-streamfold
+dsh plugin --profile web add github:rezon-aki/dsh-streamfold
+dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 ```
 
 装完**重启 profile**，然后**刷新浏览器页面**（客户端代码在页面加载时注入）。
 
-要求 DSH **>= 0.2.0-rc.2**（官方「对话显示」档位由 `configForms` 服务托管；0.1.7 系列请用 0.5.0，0.1.5 及更早请用 0.4.x）。
+要求 DSH **>= 0.2.0-rc.2**（官方「对话显示」档位由 `configForms` 服务托管；0.1.7 系列请用 0.5.0，0.1.5 及更早请用 0.4.x）。0.7.0 发布到 npm 后，方式二可简写为 `dsh plugin --profile web add dsh-streamfold`，面板粘贴 `dsh-streamfold` 也即为本版。
 
-卸载：
+卸载：在插件面板里移除，或
 
 ```bash
 dsh plugin --profile web remove dsh-streamfold

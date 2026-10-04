@@ -30,15 +30,26 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 
 ## Install
 
+**Option 1: the DSH plugin panel (recommended)** — sidebar → **Plugins** → **Add plugin**, paste the line below, then hit “Enable now”:
+
+```
+dsh-streamfold
+```
+
+> ⚠️ The panel installs by **npm package name**, and npm still serves the old line at **0.5.7**; this **0.7.0 has not been published to npm yet**. Until it is, install this version with Option 2 (`github:` / URL).
+
+**Option 2: the command line** (two equivalent forms):
+
 ```bash
-dsh plugin --profile web add dsh-streamfold
+dsh plugin --profile web add github:rezon-aki/dsh-streamfold
+dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 ```
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.2.0-rc.2** (the official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x).
+Requires DSH **>= 0.2.0-rc.2** (the official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x). Once 0.7.0 is on npm, Option 2 can be shortened to `dsh plugin --profile web add dsh-streamfold`, and pasting `dsh-streamfold` in the panel installs this version.
 
-Uninstall:
+Uninstall: remove it in the plugin panel, or
 
 ```bash
 dsh plugin --profile web remove dsh-streamfold
