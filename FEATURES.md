@@ -45,7 +45,7 @@
 
 | # | 功能 | 默认 | 说明 |
 |---|---|---|---|
-| D1 | 提问不入折叠 | **开**（`keepUserQuestions`） | `ask_user_question` 工具卡**及其回复节点**（question-reply）都不进折叠条；关掉则随其余内容一起折 |
+| D1 | 提问不入折叠 | **开**（`keepUserQuestions`） | `ask_user_question` 工具卡**及其回复节点**（question-reply）都不进折叠条；开启时「跑完回到提问处」（F1）的落点改为本轮最后那张提问卡；关掉则随其余内容一起折 |
 
 ### E. 运动层（写权 / 目标 / 输入分类）
 
@@ -63,7 +63,7 @@
 
 | # | 功能 | 默认 | 说明 |
 |---|---|---|---|
-| F1 | 跑完一轮平滑回到本轮提问处 | 开（`settleToPrompt`） | 你已经自己上滚过就不动你；动效关掉则直接到位 |
+| F1 | 跑完一轮平滑回到本轮提问处 | 开（`settleToPrompt`） | 本轮最后一条用户发言之后有 LLM 提问卡（且 D1 开启）⇒ 落到那张卡并自动展开，否则仍是你那句话；你已经自己上滚过就不动你；动效关掉则直接到位 |
 | F2 | 点「回到底部」平滑滑回底部 | 开（`showJumpButton`） | 按钮外观是官方的，**何时出现由本插件决定**（跟随中的轻微落后不显示，避免闪烁） |
 | F3 | 点置顶条滑回那句话 | 见 G1 | 本插件导航，不交写权 |
 | F4 | settle 先滑后折（9 个具名清理点） | — | `session` / `reader` / `nav` / `lost` / `timeout` / `done` / `manual` / `official` / `dispose`；协调未清时该轮折叠被压后 |
@@ -127,7 +127,7 @@
 | `mode` | `"fold"` | fold / native（官方四档时内部为 native） | 工作步骤展示档：折叠＝本插件；其余为官方档 |
 | `foldHistory` | true | — | 非运行轮次是否自动折叠 |
 | `keepInterleavedText` | true | — | 折叠时保留穿插正文 |
-| `keepUserQuestions` | true | — | 提问卡及回复不入折叠 |
+| `keepUserQuestions` | true | — | 提问卡及回复不入折叠；开启时 settle 落点为最后那张提问卡 |
 | `followMaxSpeed` | 240 | 60~2000 | 跟随追赶速度上限（px/s） |
 | `followMaxAccel` | 10000 | 2000~120000 | 跟随加速度上限（px/s²） |
 | `windowHeight` | 360 | 80~1200 | 思考/穿插正文小窗最大高度（px） |
@@ -137,7 +137,7 @@
 | `returnToTail` | true | — | 出现新 user 消息即回尾 |
 | `smoothGrow` | 0.15 | 0.05~0.9 | 跟随平滑系数 |
 | `showJumpButton` | true | — | 离底显示「回到底部」 |
-| `settleToPrompt` | true | — | 跑完回到提问处 |
+| `settleToPrompt` | true | — | 跑完回到提问处（开启提问不入折叠时落到最后那张提问卡） |
 | `pinPrompt` | true | — | 置顶显示提问 |
 | `animations` | true | — | 动效过渡 |
 | `sparks` | true | — | 小窗火花 |

@@ -18,7 +18,7 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 
 - **You can watch it think.** The newest thinking window of the running turn opens automatically (height configurable); older ones fold back into a one-line summary after a grace period. Superseded windows and past turns no longer fight for the scroll position.
 - **Folding keeps a rhythm and does not flash.** Collapsing runs bottom-up, 3 rows per group with a 70 ms stagger; expanding runs top-down, 3 rows per group. Cross-turn batches (page load, session switch) complete instantly; even a very long single turn advances group by group (only a single turn over 84 rows takes the instant guard rail).
-- **Settle on the prompt.** When a turn finishes, the view glides back to **the message that started it** (skipped if you scrolled away yourself). For 2 seconds after arrival it also corrects late layout shifts from images or code blocks.
+- **Settle on the prompt.** When a turn finishes, the view glides back to **the message that started it** — or, when "Keep LLM questions unfolded" is on and the turn contains an `ask_user_question` card, to the turn's **last question card**, auto-expanded (that is what needs your answer). Skipped if you scrolled away yourself. For 2 seconds after arrival it also corrects late layout shifts from images or code blocks.
 - **Pin the prompt.** The prompt of the turn you are reading stays pinned to the top of the conversation, one line with an ellipsis; it steps aside while the real row is on screen, and clicking it glides back to that message.
 - **Steady follow.** The bottom follow advances per frame; scrolling up stops it, and a "back to bottom" button appears once you are away. Scrolling inside a thinking window or a tool body no longer stops the follow by mistake.
 - **Search is handled too.** Folded content is still findable with Ctrl+F; while searching the plugin releases the scroll and does not pin to the bottom, and returning to the window tail or pressing back-to-bottom resumes the follow.
@@ -87,7 +87,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Work details | `mode` | Fold | Fold / official four modes | Choosing Fold parks the official mode on Verbose, avoiding double folding |
 | Fold history turns | `foldHistory` | on | toggle | Off: do not fold past turns on page load (only while a turn runs) |
 | Keep interleaved prose | `keepInterleavedText` | on | toggle | Keep prose rows while folding and separate them from the final answer with a rule (no capped window) |
-| Keep LLM questions unfolded | `keepUserQuestions` | on | toggle | The `ask_user_question` card and its reply node never fold; off folds them with everything else |
+| Keep LLM questions unfolded | `keepUserQuestions` | on | toggle | The `ask_user_question` card and its reply node never fold, and "Settle on the prompt" lands on the last question card instead; off folds them with everything else |
 | Follow speed cap | `followMaxSpeed` | 240 | 60–2000 px/s | Cap on our own catch-up speed; lower is softer and lags more on fast output. Content growth is not capped |
 | Follow acceleration cap | `followMaxAccel` | 10000 | 2000–120000 px/s² | Cap on speed change; lower is softer at start/stop, higher is more responsive |
 | Window height | `windowHeight` | 360 | 80–1200 px | Max height of a thinking / interleaved-prose window |
@@ -97,7 +97,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Return to tail on new message | `returnToTail` | on | toggle | While stopped mid-transcript, sending a new message glides back to the bottom; off keeps the view where it is until you scroll to the bottom or press back-to-bottom |
 | Smoothing factor | `smoothGrow` | 0.15 | 0.05–0.9 | Share of the remaining gap consumed per frame |
 | Show "back to bottom" | `showJumpButton` | on | toggle | Shown when away from the bottom (hidden for follow lag, to avoid flicker) |
-| Settle on the prompt | `settleToPrompt` | on | toggle | When a turn finishes, glide back to your message that started it; if you scrolled away yourself, nothing moves |
+| Settle on the prompt | `settleToPrompt` | on | toggle | When a turn finishes, glide back to your message that started it; with unfolded questions on and a question card in the turn, glide to that last card (and expand it) instead; if you scrolled away yourself, nothing moves |
 | Pin the prompt | `pinPrompt` | on | toggle | Keep the prompt of the turn you are reading pinned to the top: one line with ellipsis, steps aside while the real row is in view, click to glide back |
 | Animated transitions | `animations` | on | toggle | Off makes folding / expanding / jumping instant |
 | Window sparks | `sparks` | on | toggle | Sparks along the bottom edge of the running thinking window (off = no canvas, no frames) |
