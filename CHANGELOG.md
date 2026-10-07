@@ -2,6 +2,54 @@
 
 本项目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的组织方式记录用户可感知的变化；版本号遵循语义化版本。
 
+## [0.7.3] — 2026-10-07
+
+- 修复：「跑完回到提问处」起滑时，若落点行上方的内容还在长高（reveal / React 提交 / 长正文落版），前馈会把视图先往反方向带——起滑先倒退再追赶，肉眼就是「一开始抖一下」。现在前馈只在**跟随档**（内容自己在长）生效，一次性导航（回到提问处 / 置顶条 / 回底）不再喂前馈。
+- 新增（**开发工具，不进 npm 包**）：一键存盘命令 `.scratch/verify/dump-command.js` —— 粘进控制台后 `__dshsfDump()` 立即把「刚刚这段流式数据」存成 JSON（`probe()` 全量 + 设置/环境），`__dshsfDump(8)` 先按帧录 8 秒（含空闲帧、带 `vFeed`/`vChase`），`__dshsfDump("clip")` 只进剪贴板，`__dshsfDump.last()` 重打印摘要；配套 `.scratch/verify/collect-dump.mjs` 把下载物收进 `.scratch/dumps/`。纯本地，不联网、不写服务端。**不随包发布**：商城单文件 256 KiB 硬上限（`lib/client.js` 上限 262,144 B）下，发布前客户包只剩 167 B；本版压缩注释后回到 3,194 B。`test/contract.mjs` 会拦。
+- 修复：「跑完回到提问处」的**绝对墙钟兜底**会在长滑行被切断：`settleUntil` 只在「刚跑完」那一刻设一次（1400ms 下限），而导航自己的预算按剩余距离续期——长滑行遇到长帧（后台节流/GC，帧 dt 又被 clamp 到 500ms）时墙钟先到点 ⇒ **未到位就折叠**。现在一次性导航（元素目标）只要本帧确实在推进就续期兜底，折叠推迟到滑完；真卡住仍由看门狗有界终止。
+- 修复：同一症状的**第二条路径**——看门狗把**长卡顿**判成「卡住」。帧间隔 > `NAV_STALL_MS`(1200ms) 时（GC / 后台节流），看门狗定时器会赶在那一帧的 rAF 之前跑，看到 `navProgressAt` 已过期就 `abortStuckNav()`（`abort.why="stuck"`）⇒ 同样在到位前放行折叠。现在「帧循环还活着、但上一帧到现在已超 stall 窗」不再算卡住（长顿不算不可达），续期再看；**帧循环已停时（真·零步停机）下面的墙钟判据仍是最终兜底**，有界性不破。
+  - 真机 A/B（`.scratch/verify/tmp/j2-real.mjs` + 3s 长帧夹具）：修前 `why=timeout / fold@45 未到位（还差 37211px）`，修后 `why=done / fold@53 在到位@52 之后`。
+- 修复（task-3）：**「回到提问处」不再与跑完瞬的重排重叠**。四份真机账本显示每次起滑的头几帧 `floor` 都连塌 **369~373px**（React 提交/收尾重排），滑行叠在上面时浏览器把 `scrollTop` 钳到新 floor —— 起滑头几帧的「一顿一顿」来自这里，而不是滑行律（用同一串真实 dt 回放 `HEAD` 与当前版本，逐步位移**逐字节一致**）。现在「刚跑完」边沿只登记，等 `floor` 连静 2 次（48ms 一探，最多 350ms）再起滑；`settleToPrompt` 仍是唯一导航入口，armed≡起滑 的语义不变。
+  - 门 `probe-settle-timeout` 现覆盖两条路径（800ms 帧 = 墙钟、3000ms 帧 = 看门狗）+ ⑤ 起滑必须等塌完（负向对照：拿掉静默检查 ⇒ 起滑落在塌陷期内）。**遗留**：真·不可达目标的有界终止（HANDOFF §8「高 DPI 不可达」）仍只有静态断言，无行为夹具。
+- 修复：收到团队 / 子任务消息（右栏嵌入式子代理会话）时「触底吸附」失效。右栏那个会话挂的 `[data-conversation-session]` / `[data-chat-flow]` 与主会话同构，用 `document` 取第一条会读成别的会话 ⇒ 误判「切了会话」→ 交出写权、清空跟尾。现在会话身份与流根都从**我方滚动所在的那个会话**解析（侧栏嵌入式会话被排除）。
+- 修复：「跑完」判定找回 0.5.1 的两处加固（0.6/0.7 从 0.5.0 分叉时漏掉的）：收尾标记 `[data-turn-tail]` 只在**本会话根**内查找（右栏子代理会话与主会话轮号撞号时，会把正在跑的那一轮误判成已收尾）；`probe()` 重新暴露 `tailNodes`，并在「≥2 轮却没有收尾标记」时警告一次（内核改 DOM 时不再静默）。
+
+### 修复（2026-10-07 审计 B1–B11）
+
+- **卸载后不再有回调在跑（B7）。** 动画收尾的 rAF、`supersede` 折叠的 200ms 定时器、搜索分片与两条「下一帧合成点击」队列此前会在 `dispose` 后继续触发——2s 后仍有 1 个待执行定时器、累计 8 个不同定时器，甚至再次合成点击收窗。现在所有异步入口先查 `disposed`，`dispose` 显式取消两条 rAF 并清空队列：卸载后 2s 待执行定时器 = 0。
+- **「跑完回到提问处」的登记链不再跨会话存活 / 不再叠加（B1/B2）。** 旧链无句柄，会话切换或重复 arm 会留下过期的 `navActive` / `settleTurn`（基线切会话后仍 `navActive=true`、`settleTurn="3"`）；现在每条链自带句柄、陈旧链自止，重复 arm 的去抖恢复到约 96ms（基线 50ms 就二次触发）。
+- **`dispose` 回收诊断全局（B8）。** `window.__dshStreamfold` 与四个 `*Diag` / `*Probe` 全局此前留在页面上（热重载后新旧实例并存）；现在只在全局仍属本实例时删除。
+- **会话切换不再残留上一会话的登记（B10）。** `syncSession` 补清折叠定时器、提问卡 / 自动展开队列、自动展开集合与置顶行引用。
+- **重新 arm 前先清 settle 闩锁（B11）。** 旧 `settleTurn` 未清会让新导航继承过期协调。
+- **侧栏会话不再抢走对话流缓存 / 不再被兜底认领（B3）。** 缓存命中先确认不落在 `[data-sidebar-chat]` 内，是则重新解析主 flow；兜底也只接受非侧栏 flow，**只看到侧栏时返回 `null`**（宁可不判也不认错会话）。基线会把主 flow 认成侧栏 flow。
+- **看门狗的长顿续期有上界（B5）。** 原按次数计（`NAV_STALL_MAX = 3`），注释写「约 3.6s」但实测要 5 次续期、**约 6.0s** 才终止（首拍还因 `navProgressAt` 只差一帧被重置一次），6s 复现窗因此仍是 `aborts=0`。现改为**单调时间戳**：首拍记 `navStallSince`，`now - navStallSince >= NAV_STALL_MS × 2`（2.4s）即终止，不再数次数。`repro-watchdog-unbounded` 实测 **abort = 5900ms** 并转绿（`aborts=1, navActive=false`）；3s 长帧只累积一拍，不误杀「长顿不算卡住」。
+- **settle 续期有绝对硬上限（B6）。** 新增 `settleHardUntil = now + SETTLE_MAX_MS × 4`（约 5.6s），到点无论是否仍在推进都强制清协调（`lastSettle.why = "timeout"`）。
+- **会话根兜底不再借用外来身份（B9）。** `sessionHolder()` 兜底现在**一律**要求候选 `el.contains(anchor)`（anchor = 已附着的 `followScroller`，否则 `chatFlow()`），不满足就跳过；基线 `holderIsForeign=true`、`spuriousRelease=1` 已消除，且我方容器**已附着**时的借用路径也被堵住。
+- **`chatScope` 不再放大到 `document`（B4）。** 取不到主容器时返回一个 detached 空 `div`：`turnClosed` 不再误命中别的会话同号 tail，也不会 `null.querySelector`。
+
+### 性能（2026-10-07 审计 P1/P2/P3/P4/P7）
+
+- **瞬时折叠顺手清掉行内窗口登记（P1）。** `liveWindows` 从「3 / 12 / 40 轮各 = 轮数」降到 **1**，扫描帧 `chGet` 44 → **5**；事件数 88~89 → 33。
+- **扫描不再第二遍匹配思考正文（P3）。** 一遍扫描分出 `thinkBodies` 传给 `syncWindows`，40 轮 `body.matches(THINK_BODY)` 340 → **220**。
+- **只为会被消费的正文测高（P2）。** 答案 `_bodyWrap` 不再参与测高：扫描内 `getBoundingClientRect` 强制布局读 **40 → 0**（改用无布局的 `closest`，其计数 210 → 290）。
+- **折叠条改 `Map<turn, el>` 索引（P4）。** 断开的登记即当没有，每轮 `querySelector` 消失：等价调用 242 → **202**。
+- **官方档当帧停火星（P7）。** 官方档由 `focus(null)` / `forge(null)`（只清引用、画布仍在）改为 `sparks.reset()`，且在 `gateOfficialMode()` 顶部即 reset：官方档持续 300 帧的残留 field 由 2 降到 **0**。
+- 滑行帧写→读转移仍恰好 1 次（无抖动回归）。
+
+### 内部
+
+- **注释瘦身腾出字节预算。** 只压缩 / 删除整行注释块约 30 处（一行代码未改）：`lib/client.js` 261,977 B → 253,513 B；随后 11 条修复与 5 项降耗使最终回到 **258,950 B / 3,811 行**，距 256 KiB 上限（262,144 B）余 **3,194 B**（修复前仅余 167 B）。
+- **全部门全绿（0.7.3 基线 `697dde75…`）。** `npm test`（28 断言 + contract + client-apply）、`accept` **21/21 PASS**、`accept --selftest` **ALL PASS**、`check-active-window` **12 PASS / 0 FAIL**；新增回归门 `.scratch/audit-2026-10-07/regress/run.mjs` **9/9 PASS**（基线 9/9 红，逐门负向对照灵敏）。
+- **旧探针假红是 Round 2 的实质结论。** 首轮 B3/B9 的严格版曾把两条既有探针打红，当时被记作「三处偏离审计最小修法」。复核确认那**不是契约冲突，而是探针本身有缺陷**：`probe-embedded-session-scope` 的负向对照②不自足（靠 live 的 `all[0]` 兜底当支点，实为装置自检）、`probe-contract` ③-4 的夹具把会话根造成 scroller / flow 的**兄弟**而非祖先（与内核真实 DOM 形状不符）。先把两条探针改成自足的 naive 路径 / 真实祖先形状（task-10），再收紧实现（task-11），严格版全绿 ⇒ 此前是**假红**。
+- **一处偏离审计最小修法**：仅 B4 仍返回 detached 空作用域而非 `null`（为保住 `probe-turn-closed-scope` 对 `chatScope().querySelector(` 恰好 2 处的**文本计数**断言）。该修法本身正当（`|| document` 已消除、消费点零改动）；建议后续把该门改成行为断言。理由见 `.scratch/audit-2026-10-07/IMPL.md` §8 与 `.scratch/audit-2026-10-07/verify-final/VERIFY-FINAL.md` §3。
+
+### 已知残余（0.7.3）
+
+- **B4 仍返回 detached 空作用域而非 `null`**：为保住 `probe-turn-closed-scope` 对 `chatScope().querySelector(` 恰好 2 处的**文本计数**断言（该门测的是字面量出现次数，不是行为）。建议后续改成行为断言，例如「无容器时 `chatScope()` 不含任何 `[data-turn-tail]`」。
+- **B5 的终止时刻依赖 `navBudget` 首拍（无与距离无关的绝对上界）**：终止起点由 `navBudget` 首拍决定，进入长顿后再叠加 ≤ `2 × NAV_STALL_MS` + 一拍（约 2.4~3.6s）；最坏 ≈ `navBudgetMs` + 3.6s，同一 `dist=150000` 场景 ≈ **16.4s**（旧稿「约 18.8s」沿用 Round 1 的 `navBudgetMs` + 6.0s 叠加项，推导已作废）。实测 abort = 5900ms（终验独立复测 **5917ms**）在该口径内；`navBudget` 随剩余距离增长。
+- **P5 / P6 / P8 / R1–R4 未做。**
+- **全部验证基于手写 fake DOM，无真机取证**：B3 首扫窗口、B5 后台标签页冻结时长、B6 迟到落版持续时间、B7 卸载时机等真机触发频率未测。
+
 ## [0.7.2] — 2026-10-05
 
 - 调整：开启「提问不入折叠」时，「跑完回到提问处」落到本轮最后一张 LLM 提问卡（而不是你那句话），并在就位前把这张卡展开。
@@ -75,5 +123,7 @@
 - **自动展开移出扫描帧**：提问卡/思考/工具只登记，合成点击在下一帧 rAF 执行。
 - **折叠内容用 `hidden="until-found"`**，兼顾长会话性能与 Ctrl+F 可搜。
 
+[0.7.3]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.3
+[0.7.2]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.2
 [0.7.1]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.1
 [0.7.0]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.0

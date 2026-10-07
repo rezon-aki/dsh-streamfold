@@ -114,6 +114,14 @@ dsh plugin --profile web remove dsh-streamfold
 浏览器控制台：
 
 ```js
+// 开发组排查用：把 `.scratch/verify/dump-command.js` 整段粘进控制台（或存成 DevTools Snippet），"一条命令"存一份数据给分析
+__dshsfDump()                    // 立即存 → 浏览器下载目录 streamfold-<时间>.json（probe()+rows()+stats()+设置+trace）
+__dshsfDump(8)                   // 先按帧录 8 秒（含空闲帧、带 vFeed/vChase）再存
+__dshsfDump("clip")              // 只进剪贴板（不方便下载时）
+__dshsfDump.last()               // 重打印最近一次摘要
+// 再 `node .scratch/verify/collect-dump.mjs` 把下载物收进 .scratch/dumps/（--clip 走剪贴板）
+// 注意：这条命令**不在** npm 包里 —— 商城单文件 256KiB 上限，客户包没余量（见 test/contract.mjs）
+
 __dshStreamfold.stats()          // 窗口 / 折叠 / 折叠条计数（含动效状态）
 __dshStreamfold.probe()          // 行状态、还看得见的思考行、小窗动画、回底按钮、火花开销、跟随明细
 __dshStreamfold.state()          // 当前设置 + 官方「工作步骤展示」取值快照

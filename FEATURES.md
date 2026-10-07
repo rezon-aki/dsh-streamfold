@@ -1,6 +1,6 @@
 # dsh-streamfold —— 功能与边界清单
 
-> 基准代码：`lib/client.js` sha256 `9404096fa37056b93a6c7472c9f6cbc17521e49827b27f1314bff25cec1d0975` / **3752 行** / `package.json` `0.7.0`；`lib/index.js` 12 行占位。
+> 基准代码（0.7.3）：`lib/client.js` sha256 `697dde75894639930a971419bfee652c1c52bb3114b41519e7a44d242c7422c3` / 3811 行 / 258950 B（以 `sha256sum`、`wc -lc` 现测为准）；`package.json` `0.7.3`。`lib/index.js` 12 行占位。
 > 插件形态：DSH Web 客户端的**纯展示增强**。宿主半区只是让客户端模块系统找到浏览器半区的条目（不读写文件、不注册路由、不导出 Config）；**全部功能在浏览器半区 `lib/client.js`**。
 
 ## 0. 一句话
@@ -70,7 +70,7 @@
 | F5 | 滑行中不被外来写顶掉目标 | — | `writer=us` 且目标是 element 时，外来写（赋值 / `scrollIntoView` / 官方导航）只放行落地、不改本插件目标；落点跳变会作废方向速度态（避免零步停帧） |
 | F6 | 目标断连重试一次 | — | 提问行节点被 React 替换/移除时，按「最后一条 user 消息」重新导航一次，而不是停在原地 |
 | F7 | 到位后 2s 有界观察窗口 | — | `NAV_WATCH_MS = 2000` / `NAV_WATCH_MAX = 4` / `NAV_WATCH_MIN_GAP_MS = 100` / `NAV_OBSERVE_EVERY = 2`：窗口内每 2 帧观察，偏差 >2px 且与上次纠正间隔 ≥100ms 才再纠正，最多 4 次；窗口到期/次数用尽/读者接管/新导航/换会话/卸载立即退出，零 rAF 与定时器残留 |
-| F8 | 不可达目标有界终止 | — | 导航在 `navBudget(距离) + ≤1.2s` 无进展时由看门狗终止（清导航目标 + 走既有超时清理），随后该轮折叠照常发生；终止写入 `probe().mainFollow.abort` |
+| F8 | 不可达目标有界终止 | — | 导航进入长顿后 `now - navStallSince >= 2 × NAV_STALL_MS`（2.4s）即由看门狗终止（首拍时刻由 `navBudget(距离)` 决定；实测 abort = 5900ms）（清导航目标 + 走既有超时清理），随后该轮折叠照常发生；终止写入 `probe().mainFollow.abort` |
 
 ### G. 置顶显示提问
 
@@ -118,7 +118,7 @@
 | L3 | `__dshStreamfold.state()` | 当前设置 + 官方「工作步骤展示」取值快照 |
 | L4 | `__dshStreamfold.set({...})` / `dispose()` | 运行时改设置 / 撤掉全部注入（`dispose` 幂等且卸载即净） |
 | L5 | `npm test` | `test/spark.mjs`（28 断言）+ `test/contract.mjs` + `test/client-apply.mjs`；当前 EXIT=0 |
-| L6 | 验收矩阵与自检 | 维护者本地的 15 项 PASS/FAIL 矩阵 + `--selftest` 负向对照（当前 15/15、ALL PASS）；错峰/瞬时契约与活动窗吸附另有专项装置 |
+| L6 | 验收矩阵与自检 | 维护者本地的 21 项 PASS/FAIL 矩阵 + `--selftest` 负向对照（当前 21/21、ALL PASS）；错峰/瞬时契约与活动窗吸附另有专项装置 |
 
 ## 2. 设置项全表（22 项）
 
@@ -153,12 +153,12 @@
 
 | 项 | 事实 |
 |---|---|
-| 无构建步骤 | 手写 `lib/`，`lib/client.js` 包在 `window.__ModuleLoader__.load({id, factory})` 里；只能 require 宿主模块（无相对引入）⇒ 事实上单文件 3752 行 |
+| 无构建步骤 | 手写 `lib/`，`lib/client.js` 包在 `window.__ModuleLoader__.load({id, factory})` 里；只能 require 宿主模块（无相对引入）⇒ 事实上单文件 3811 行（0.7.3 基线）|
 | 零依赖 / 零网络 | 不发网络请求、不接触凭据、不读写宿主文件；`lib/index.js` 不导出 Config、不注册路由 |
 | DOM 契约 | 全部靠官方语义属性定位：`[data-chat-flow]`、`[data-chat-flow-kind]`、`[data-chat-turn]`、`[data-disclosure-row][aria-expanded]`、`[data-variant=think]`、`[data-tool]`、`[data-sample=bash]`、`[class*=_thinkBody]`、`[class*=_bodyWrap]`、`[data-context-injection-body]`、`[data-conversation-session]`。**不用 CSS module 哈希** |
 | 兼容声明 | `engines.dsh >= 0.2.0-rc.2`，`compatibility < 0.3.0`；实测 `0.2.0-rc.2` |
 | 加载 | 改 `lib/*.js` 后重载插件 + **刷新浏览器页面** |
-| 验收 | `npm test`；另有维护者本地的验收矩阵（15 项）与专项负向对照装置 |
+| 验收 | `npm test`；另有维护者本地的验收矩阵（21 项）与专项负向对照装置 |
 
 ## 4. 功能边界与残余（不要误读成「没缺陷」）
 
@@ -169,7 +169,7 @@
 5. **嵌套滚动边界是近似判定**：见 E7；部分「嵌套体越界后链式滚给父容器」的释放被牺牲。
 6. **官方显式导航**：点击驱动的官方导航会被接管；**没有输入前导的程序化导航**与 `writer = reader` 态一律放行（不接管）。
 7. **依赖官方 DOM 语义**：官方行隐藏靠结构识别（`aria-haspopup` 按钮 + 档位文案），失效后果是官方行不再被隐藏（功能不丢）；折叠整体依赖官方语义属性，官方改属性会让折叠整体失效（不是降级）。
-8. **高 DPI 不可达目标**：历史上会永久卡住，现由看门狗在 `navBudget + ≤1.2s` 内有界终止，折叠不再被永久压住。
+8. **高 DPI 不可达目标**：历史上会永久卡住，现由看门狗在进入长顿后 ≤2×`NAV_STALL_MS`（2.4s）内终止（首拍由 `navBudget` 决定；实测 abort = 5900ms），折叠不再被永久压住。
 
 ## 5. 性能口径（本轮复测）
 
