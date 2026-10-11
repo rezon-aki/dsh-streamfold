@@ -213,7 +213,7 @@ exportsObject.apply(context)
 const api = windowStub.__dshStreamfold
 assert.ok(api, 'apply() 跑完没有挂出 window.__dshStreamfold')
 /* 键表 = 长期公开面（迁移阶段 1 收窄）：probe/rows/stats 是聚合报表，将随诊断聚合搬去 dev 插件
- * （.scratch/audit-2026-10-11/DEV-MIGRATION-PLAN.md §4 阶段 1/3）⇒ 不再强求存在；
+ * （迁移计划 §4 阶段 1/3，维护者文档）⇒ 不再强求存在；
  * 若仍在，必须仍是函数、空 DOM 下不抛（兼容档；阶段 3 转严格版 = 必须不存在）。 */
 for (const key of ['scan', 'set', 'get', 'chooseDisplay', 'state', 'dispose']) {
   assert.equal(typeof api[key], 'function', '调试出口缺函数：' + key)
@@ -358,7 +358,7 @@ assert.equal(regressFails.length, 0, 'R2 回归用例失败 —— ' + regressFa
 console.log('client-apply: ok')
 
 /* ---------------- 2026-10-11 R1 批次回归（B1/B2/B3；测试侧，不占客户包字节） ----------------
- * 三条都对 b46f4bfc（修前冻结快照，CLIENT_SRC=.scratch/fix-2026-10-10/verify/candidate-b46f4bfc.js）转红：
+ * 三条都对 b46f4bfc（修前冻结快照，CLIENT_SRC 指向当时的 client.js 副本）转红：
  *  B1 release(reader) 交权后 anchorSync 仍把滚轮位置写回（writeCount 0→1）；
  *  B2 Ctrl+F 命中后 clearSearchHidden 交还自动收起，scan→closeThink 把刚揭开的命中正文卸载；
  *  B3 错峰收起中途反向展开，未打 folded 的 staged 行永久残留 maxHeight/overflow。
