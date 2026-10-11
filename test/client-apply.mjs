@@ -212,14 +212,20 @@ exportsObject.apply(context)
 
 const api = windowStub.__dshStreamfold
 assert.ok(api, 'apply() 跑完没有挂出 window.__dshStreamfold')
-for (const key of ['stats', 'rows', 'probe', 'scan', 'set', 'get', 'chooseDisplay', 'state', 'dispose']) {
+/* 键表 = 长期公开面（迁移阶段 1 收窄）：probe/rows/stats 是聚合报表，将随诊断聚合搬去 dev 插件
+ * （.scratch/audit-2026-10-11/DEV-MIGRATION-PLAN.md §4 阶段 1/3）⇒ 不再强求存在；
+ * 若仍在，必须仍是函数、空 DOM 下不抛（兼容档；阶段 3 转严格版 = 必须不存在）。 */
+for (const key of ['scan', 'set', 'get', 'chooseDisplay', 'state', 'dispose']) {
   assert.equal(typeof api[key], 'function', '调试出口缺函数：' + key)
 }
-assert.doesNotThrow(() => api.rows(), 'rows() 在空 DOM 下抛错')
-assert.doesNotThrow(() => api.stats(), 'stats() 在空 DOM 下抛错')
-const probe = api.probe()
-assert.equal(typeof probe, 'object', 'probe() 应返回对象')
-assert.equal(probe.error, 'no chat rows found', '空 DOM 下 probe() 应报找不到聊天行')
+assert.ok(api.fx, '调试出口缺 fx（火花调参入口）')
+assert.doesNotThrow(() => api.scan(), 'scan() 在空 DOM 下抛错')
+assert.doesNotThrow(() => api.get(), 'get() 在空 DOM 下抛错')
+for (const key of ['probe', 'rows', 'stats']) {
+  if (api[key] === undefined) continue
+  assert.equal(typeof api[key], 'function', '调试出口存在但非函数：' + key)
+  assert.doesNotThrow(() => api[key](), key + '() 在空 DOM 下抛错')
+}
 
 /* ---------------- M-29：apply → dispose → 再 dispose → 再 apply（负向对照见报告） ---------------- */
 const listenerCount = (el, type) => { const a = el._listeners.get(type); return a ? a.length : 0 }
