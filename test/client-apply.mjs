@@ -274,7 +274,7 @@ api2.scan()
 assert.equal(tree.think.getAttribute('data-dshsf-wired'), '1', 'M-29 再 apply 应重新接线')
 console.log('client-apply: dispose/re-apply (M-29) ok')
 
-/* ---------------- R2 批次回归（MM-02/04/05b/07；测试侧，不占包体） ---------------- */
+/* ---------------- 回归批次（测试侧，不占包体） ---------------- */
 const sfTest = windowStub.__sfTest
 assert.ok(sfTest, '测试 hook 未注入（client.js 锚点变了）')
 const regressFails = []
@@ -283,8 +283,8 @@ const regress = (name, fn) => {
   catch (err) { regressFails.push(name + ': ' + String((err && err.message) || err)) }
 }
 
-// MM-05b：armSettle 等待起滑窗口内该轮不得先折（settleArm.turn 命中 ⇒ 排除出可折集）
-regress('MM-05b', () => {
+// ：armSettle 等待起滑窗口内该轮不得先折（settleArm.turn 命中 ⇒ 排除出可折集）
+regress('', () => {
   const row = tree.think.parentElement
   const flow0 = row.parentElement
   if (!flow0.querySelector('[data-answer-marker]')) {   // 本轮补一个"答行"，使 think 所在行成为可折的过程行
@@ -298,8 +298,8 @@ regress('MM-05b', () => {
   assert.equal(row.hasAttribute('data-dshsf-folded'), false, '等待起滑期不得折叠该轮')
 })
 
-// MM-05a：hold() 手动接管后协调必须作废（settleTurn 清），否则该轮永不折叠
-regress('MM-05a', () => {
+// ：hold() 手动接管后协调必须作废（settleTurn 清），否则该轮永不折叠
+regress('', () => {
   const row = tree.think.parentElement
   row.removeAttribute('data-dshsf-folded')
   sfTest.setSettleTurn('1')                              // 构造 settle 协调态
@@ -309,8 +309,8 @@ regress('MM-05a', () => {
   assert.equal(sfTest.getSettleTurn(), null, '协调清掉后不得被 syncTurns 重新闩上')
 })
 
-// MM-04：同 scope 再 apply 后，迟到的旧 disposer 不得把新代拆死（按代幂等）
-regress('MM-04', () => {
+// ：同 scope 再 apply 后，迟到的旧 disposer 不得把新代拆死（按代幂等）
+regress('', () => {
   const apiOld = windowStub.__dshStreamfold
   delete windowStub.__dshStreamfold                 // 强制：下一次 apply 不 auto-dispose 旧实例
   exports2.apply(context)
@@ -327,9 +327,9 @@ regress('MM-04', () => {
   assert.equal(think2.getAttribute('data-dshsf-wired'), '1', '迟到旧 dispose 不得使本代 scan 失效')
 })
 
-// MM-07：unfoldRowAnimated 的 rAF/340ms 必须按代守卫（旧代不得再写 maxHeight）
+// ：unfoldRowAnimated 的 rAF/340ms 必须按代守卫（旧代不得再写 maxHeight）
 await (async () => {
-  let name = 'MM-07'
+  let name = ''
   try {
     const row = makeElement('div')
     sfTest.unfoldRowAnimated(row)
@@ -344,8 +344,8 @@ await (async () => {
   } catch (err) { regressFails.push(name + ': ' + String((err && err.message) || err)) }
 })()
 
-// MM-02：anchorDuring 的逐帧 step 在 anchorSync 自停后不得空引用（旧代码读 null.until 抛 TypeError）
-regress('MM-02', () => {
+// ：anchorDuring 的逐帧 step 在 anchorSync 自停后不得空引用（旧代码读 null.until 抛 TypeError）
+regress('', () => {
   sfTest.anchorDuring(tree.think, 0, 1000)          // 起一个锚定窗口并排队 step
   tree.think.remove()                               // 断连 ⇒ step 内的 anchorSync 会自停 anchorCtl
   let threw = null
@@ -357,7 +357,7 @@ assert.equal(regressFails.length, 0, 'R2 回归用例失败 —— ' + regressFa
 
 console.log('client-apply: ok')
 
-/* ---------------- 2026-10-11 R1 批次回归（B1/B2/B3；测试侧，不占客户包字节） ----------------
+/* ---------------- 2026-10-11 回归批次（B1/B2/B3；测试侧，不占客户包字节） ----------------
  * 三条都对 b46f4bfc（修前冻结快照，CLIENT_SRC 指向当时的 client.js 副本）转红：
  *  B1 release(reader) 交权后 anchorSync 仍把滚轮位置写回（writeCount 0→1）；
  *  B2 Ctrl+F 命中后 clearSearchHidden 交还自动收起，scan→closeThink 把刚揭开的命中正文卸载；
