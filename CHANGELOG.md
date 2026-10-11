@@ -2,7 +2,7 @@
 
 本项目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的组织方式记录用户可感知的变化；版本号遵循语义化版本。
 
-## [未发布]
+## [0.7.5] — 2026-10-11
 
 - 修复：交给读者滚动权后，锚定补偿仍会把视图拉回点击那一行；现在一交权就停锚（还原 `overflow-anchor`、断开观察者、停掉逐帧链）。
 - 修复：Ctrl+F 命中被折起的思考正文时，刚揭开的正文会被同一次扫描立刻收起，命中内容看不见；现在命中的那一块保持展开到用户收起或会话更替，同行其它未命中的思考块仍保持 `until-found` 隐藏。
@@ -89,6 +89,7 @@
 - 调整：折叠内容用 `hidden="until-found"`，兼顾长会话性能与 Ctrl+F 可搜。
 - 调整：默认值按真机固化：窗口高度 360 px、跟随速度上限 240 px/s、加速度上限 10000 px/s²。
 
+[0.7.5]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.5
 [0.7.4]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.4
 [0.7.3]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.3
 [0.7.2]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.2
