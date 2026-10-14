@@ -2,6 +2,11 @@
 
 本项目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的组织方式记录用户可感知的变化；版本号遵循语义化版本。
 
+## [0.7.6] — 2026-10-15
+
+- 调整：长会话扫描里「这一行还有没有文本」的判定只重算最近两轮，稳态下该部分调用减少约三分之一。
+- 调整：折叠摘要的思考卡计数不再逐元素做嵌套判定（思考卡不嵌套），该部分开销约减半。
+
 ## [0.7.5] — 2026-10-11
 
 - 修复：交给读者滚动权后，锚定补偿仍会把视图拉回点击那一行；现在一交权就停锚（还原 `overflow-anchor`、断开观察者、停掉逐帧链）。
@@ -90,6 +95,7 @@
 - 调整：折叠内容用 `hidden="until-found"`，兼顾长会话性能与 Ctrl+F 可搜。
 - 调整：默认值按真机固化：窗口高度 360 px、跟随速度上限 240 px/s、加速度上限 10000 px/s²。
 
+[0.7.6]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.6
 [0.7.5]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.5
 [0.7.4]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.4
 [0.7.3]: https://github.com/rezon-aki/dsh-streamfold/releases/tag/v0.7.3
