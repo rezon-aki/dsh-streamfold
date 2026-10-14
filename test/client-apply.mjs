@@ -859,3 +859,276 @@ await (async () => {
 
 assert.equal(r4Fails.length, 0, 'R4 回归用例失败 —— ' + r4Fails.join(' | '))
 console.log('client-apply: R4 (B4/A-1/A-2) ok')
+
+/* ---------------- 2026-10-14 R5（置顶条行为不变量：任何失效源变化都必须跟上） ----------------
+ * 背景：批次曾给 pinTickInner 加「只认 scrollTop 的降频跳过」，实测跟尾/流式 0/120 命中、停滞期循环自停
+ * 无可省帧，且不滚动时误跳 ⇒ 已按实测回退为每帧重算（HEAD 形态）。本段保留为**行为不变量门**：
+ *   P3-a 开关关掉 / 行集合清空而不滚动 ⇒ 必须收起；
+ *   P3-b 行集合换新+布局上移 / 容器换尺寸 / 视口变小 / 换容器 ⇒ 钉住的行、文案、位置、显隐必须跟上。
+ * 判据全是行为（不做源码字符串断言）；负向对照内建：谁把朴素 skip 注入回来，本段必须转红（injectNaivePinSkip）。 */
+const ZERO_RECT = { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0 }
+/** 假 DOM 的 childNodes 只认元素，而 rowText 只吃 nodeType=3 ⇒ 造一个够 duck 的文本节点（带空 children/选择器实现，防别处遍历炸） */
+const pinTextNode = (s) => ({
+  nodeType: 3, nodeValue: String(s), children: [], parentElement: null, parentNode: null, isConnected: true,
+  getAttribute: () => null, hasAttribute: () => false, matches: () => false, closest: () => null,
+  querySelector: () => null, querySelectorAll: () => [], getBoundingClientRect: () => ZERO_RECT, style: makeStyle(), dataset: {},
+})
+/** R5 独立夹具：window 带可派发监听表，源文件按参数传入（负向对照要在另一个源上跑同一段判据）。 */
+function makePinEnv(src, hook) {
+  let capturedPin = null
+  const docListeners = new Map()
+  const winListeners = new Map()
+  const observers = []          // 捕获 MutationObserver 回调（G-P2 要按真实 MutationRecord 形状手动投递）
+  const rafPin = []
+  const headP = makeElement('head'), bodyP = makeElement('body'), htmlP = makeElement('html')
+  htmlP.appendChild(headP); htmlP.appendChild(bodyP)
+  const allP = (sel) => [htmlP, ...descendants(htmlP)].filter((el) => matchesSel(el, sel))
+  const docP = {
+    head: headP, body: bodyP, documentElement: htmlP, baseURI: 'http://127.0.0.1:3080/',
+    createElement: (tag) => makeElement(tag),
+    createTextNode: (text) => ({ nodeType: 3, nodeValue: String(text) }),
+    getElementById: (id) => descendants(htmlP).find((el) => el.getAttribute('id') === id) || null,
+    querySelector: (sel) => allP(sel)[0] || null,
+    querySelectorAll: (sel) => allP(sel),
+    getElementsByTagName: (name) => descendants(htmlP).filter((el) => name === '*' || el.tagName === String(name).toUpperCase()),
+    addEventListener(type, fn) { if (!docListeners.has(type)) docListeners.set(type, []); docListeners.get(type).push(fn) },
+    removeEventListener(type, fn) { const a = docListeners.get(type); if (a) { const i = a.indexOf(fn); if (i >= 0) a.splice(i, 1) } },
+    contains: () => true,
+  }
+  const winP = {
+    __ModuleLoader__: { load: (definition) => { capturedPin = definition.factory } },
+    innerWidth: 1200, innerHeight: 800, devicePixelRatio: 1,
+    addEventListener(type, fn) { if (!winListeners.has(type)) winListeners.set(type, []); winListeners.get(type).push(fn) },
+    removeEventListener(type, fn) { const a = winListeners.get(type); if (a) { const i = a.indexOf(fn); if (i >= 0) a.splice(i, 1) } },
+    dispatchEvent(evt) { const a = winListeners.get(evt && evt.type); if (a) for (const fn of a.slice()) fn(evt); return true },
+    requestAnimationFrame: (fn) => { rafPin.push(fn); return rafPin.length },
+    cancelAnimationFrame() {},
+    matchMedia: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
+    getComputedStyle: (el) => ({ overflowY: (el && el.__overflowY) || 'visible', overflowX: 'visible', display: 'block', visibility: 'visible', opacity: '1' }),
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    location: { href: 'http://127.0.0.1:3080/' },
+  }
+  const sb = {
+    window: winP, document: docP, console,
+    performance: { now: () => Date.now() },
+    setTimeout, clearTimeout, setInterval, clearInterval, queueMicrotask,
+    getComputedStyle: winP.getComputedStyle, localStorage: winP.localStorage,
+    requestAnimationFrame: winP.requestAnimationFrame, cancelAnimationFrame: winP.cancelAnimationFrame,
+    MutationObserver: class { constructor(cb) { this.cb = cb; this.opts = null; observers.push(this) } observe(_t, opts) { this.opts = opts || {} } disconnect() {} takeRecords() { return [] } },
+    ResizeObserver: class { observe() {} unobserve() {} disconnect() {} },
+    Element: FakeElement, HTMLElement: FakeElement, Node: FakeElement,
+    Event: class { constructor(type) { this.type = type } }, CustomEvent: class { constructor(type) { this.type = type } },
+    navigator: { userAgent: 'node' },
+  }
+  sb.window.document = docP
+  sb.globalThis = sb
+  vm.createContext(sb)
+  const hooked = src.replace('exports.apply = apply;', hook + '\nexports.apply = apply;')
+  assert.notEqual(hooked, src, 'R5 夹具：注入锚点丢失（client.js 结构已变）')
+  vm.runInContext(hooked, sb, { filename: 'lib/client.js' })
+  assert.ok(capturedPin, 'R5 夹具：factory 未注册')
+  return { doc: docP, body: bodyP, win: winP, listeners: docListeners, observers, exports: capturedPin(requireStub) }
+}
+/** 只暴露本段判据要用的既有内部名（tick 里 frameSh/frameCh 先在 1716 读到、pinned 在 1721 —— 这里按同序模拟一帧）。 */
+const PIN_HOOK = 'window.__sfPin = { tick: (sc, sh, ch) => { frameSh = sh; frameCh = ch; pinTick(sc); },'
+  + ' rows: (r) => { pinRows = r; }, prompt: (v) => { state.pinPrompt = v; }, pinRow: () => pinRow, rects: () => pinRects };'
+/** 负向对照：把「只认 scrollTop 的朴素 skip」注入回退后的每帧版（谁再塞回去，本段必须转红）。 */
+const PIN_DECL_ANCHOR = 'let pinRects = 0;'
+const PIN_BODY_ANCHOR = '  pinRects += 2;   // 该函数每帧固定两次 getBoundingClientRect 级别测量（行 + 容器）'
+function injectNaivePinSkip(src) {
+  assert.ok(src.includes(PIN_DECL_ANCHOR) && src.includes(PIN_BODY_ANCHOR), 'R5 负向对照锚点丢失（pinTickInner 结构已变）：判据需复查')
+  return src.replace(PIN_DECL_ANCHOR, PIN_DECL_ANCHOR + '\nlet pinLastScrollTop = -1;')
+    .replace(PIN_BODY_ANCHOR, '  if (Math.abs(scroller.scrollTop - pinLastScrollTop) < 1) return;   // neg-control：朴素 skip（只认 scrollTop）\n  pinLastScrollTop = scroller.scrollTop;\n' + PIN_BODY_ANCHOR)
+}
+
+function pinChecks(src) {
+  const fails = []
+  const bad = (m) => fails.push(m)
+  const env = makePinEnv(src, PIN_HOOK)
+  const T = env.win.__sfPin
+  const bar = () => env.doc.querySelector('[data-dshsf-pin]')
+  const where = () => bar() === null ? '(无置顶条)'
+    : [bar().style.top, bar().style.left, bar().style.width, bar().hasAttribute('data-dshsf-visible') ? 'visible' : 'hidden', JSON.stringify(bar().textContent)].join('/')
+  const label = (row) => row === null || row === undefined ? 'null' : JSON.stringify((row.children || []).map((c) => c.nodeValue || '').join('') || row.textContent)
+  const mkScene = (sh, ch, top) => {
+    const scroller = makeElement('div'); scroller.__overflowY = 'auto'
+    scroller.scrollHeight = sh; scroller.clientHeight = ch; scroller.scrollTop = top
+    scroller.__rect = { top: 0, left: 0, width: 800, height: ch }
+    scroller.getBoundingClientRect = () => { const r = scroller.__rect; return { top: r.top, left: r.left, right: r.left + r.width, bottom: r.top + r.height, width: r.width, height: r.height, x: r.left, y: r.top } }
+    const flow = makeElement('div'); flow.setAttribute('data-chat-flow', '')
+    scroller.appendChild(flow); env.body.appendChild(scroller)
+    return { scroller, flow }
+  }
+  const mkRow = (scene, text, docTop) => {
+    const row = makeElement('div'); row.setAttribute('data-chat-flow-kind', 'user')
+    row.appendChild(pinTextNode(text)); row.__docTop = docTop
+    row.getBoundingClientRect = () => { const top = row.__docTop - scene.scroller.scrollTop; return { top, bottom: top + 40, left: 0, right: 800, width: 800, height: 40, x: 0, y: top } }
+    scene.flow.appendChild(row)
+    return row
+  }
+
+  const A = mkScene(5000, 600, 1500)                 // 视口线 = doc 1500
+  const q1 = mkRow(A, 'Q1', 1000)                    // 线之上
+  const q2 = mkRow(A, 'Q2', 2000)                    // 线之下
+  T.rows([q1, q2])
+  T.tick(A.scroller, 5000, 600)
+  if (bar() === null) { bad('R5 前置失败：置顶条未创建'); return fails }
+  if (!bar().hasAttribute('data-dshsf-visible')) bad('R5 前置失败：置顶条应可见 —— ' + where())
+  if (T.pinRow() !== q1) bad('R5 前置失败：应钉住 q1（实得 ' + label(T.pinRow()) + '）')
+  if (bar().textContent !== 'Q1') bad('R5 前置失败：文案应为 Q1 —— ' + where())
+
+  // ① P3-a：不滚动，关掉开关 ⇒ 必须收起；恢复 ⇒ 必须重新露出
+  T.prompt(false)
+  T.tick(A.scroller, 5000, 600)
+  if (bar().hasAttribute('data-dshsf-visible')) bad('P3-a 关掉置顶显示且不滚动 ⇒ 必须收起 —— ' + where())
+  T.prompt(true)
+  T.tick(A.scroller, 5000, 600)
+  if (!bar().hasAttribute('data-dshsf-visible')) bad('P3-a 开关恢复（同一滚动位置）⇒ 必须重新露出 —— ' + where())
+
+  // ② P3-a：不滚动，行集合清空 ⇒ 必须收起
+  T.rows([])
+  T.tick(A.scroller, 5000, 600)
+  if (bar().hasAttribute('data-dshsf-visible')) bad('P3-a 行集合清空且不滚动 ⇒ 必须收起 —— ' + where())
+  T.rows([q1, q2])
+  T.tick(A.scroller, 5000, 600)
+
+  // ③ P3-b：不滚动，布局上移 + 扫描重算出新行数组（新提问行/折叠展开）⇒ 钉住的行与文案必须跟上
+  q2.__docTop = 1200
+  T.rows([q1, q2])
+  T.tick(A.scroller, 5000, 600)
+  if (T.pinRow() !== q2) bad('P3-b 布局上移+行集合换新但不滚动 ⇒ 应改钉 q2（实得 ' + label(T.pinRow()) + '）')
+  if (bar().textContent !== 'Q2') bad('P3-b 文案必须跟上为 Q2 —— ' + where())
+
+  // ④ P3-b：不滚动，容器换尺寸/挪位置（resize / 流式长高）⇒ 必须重排
+  A.scroller.__rect = { top: 120, left: 40, width: 640, height: 400 }
+  T.tick(A.scroller, 5000, 400)
+  if (bar().style.top !== '120px' || bar().style.left !== '40px' || bar().style.width !== '640px') bad('P3-b 容器换尺寸/挪位置且不滚动 ⇒ 必须重排 —— ' + where())
+
+  // ⑤ P3-b：不滚动，视口变小到放不下 ⇒ 必须收起；恢复 ⇒ 必须重新露出
+  env.win.innerHeight = 100
+  T.tick(A.scroller, 5000, 400)
+  if (bar().hasAttribute('data-dshsf-visible')) bad('P3-b 视口变小且不滚动 ⇒ 必须收起 —— ' + where())
+  env.win.innerHeight = 800
+  T.tick(A.scroller, 5000, 400)
+  if (!bar().hasAttribute('data-dshsf-visible')) bad('P3-b 视口恢复（同一滚动位置）⇒ 必须重新露出 —— ' + where())
+
+  // ⑥ P3-b：不滚动，换会话容器（同一 scrollTop、不同位置/宽度）⇒ 必须按新容器重排
+  const B = mkScene(5000, 600, 1500)
+  B.scroller.__rect = { top: 0, left: 12, width: 700, height: 600 }
+  T.tick(B.scroller, 5000, 600)
+  if (bar().style.top !== '0px' || bar().style.left !== '12px' || bar().style.width !== '700px') bad('P3-b 换容器（同一 scrollTop）⇒ 必须按新容器重排 —— ' + where())
+  return fails
+}
+
+const pinFails = pinChecks(source)
+assert.equal(pinFails.length, 0, 'R5 置顶条行为不变量 —— ' + pinFails.join(' | '))
+const naiveFails = pinChecks(injectNaivePinSkip(source))
+assert.ok(naiveFails.length >= 3, 'R5 负向对照：把朴素 skip 注入回来必须转红（实得 ' + naiveFails.length + ' 项：' + naiveFails.join(' | ') + '）')
+console.log('client-apply: R5 (置顶条行为不变量) ok — 注入朴素 skip 负向对照转红 ' + naiveFails.length + ' 项：' + naiveFails.join(' | '))
+
+/* ---------------- 2026-10-14 G-P2（保留项 P2：hotRows 3→2 的前提 —— 定向失效必须覆盖所有轮次） ----------------
+ * P2 把热集从最近 3 轮收到最近 2 轮（实测省 hasText 调用），前提是「更老的轮次靠 MutationObserver 定向失效」。
+ * 本门：≥3 轮夹具 → scan（热集只含最近 2 轮）→ 只改**最老一轮**行内文本 → 按真实 MutationRecord 形状投递
+ * 给结构 observer → 该行 hasText 判定必须被重算（计数 +1）。
+ * 负向对照内建：把 observer 里的 textCache.delete(row) 去掉（= 失效只靠热集）⇒ 本门必须转红。 */
+const GP2_HOOK = 'window.__g2 = { hasText: (el) => hasText(el), hot: (el) => hotRows.has(el), calls: () => cost.counts.hasText || 0 };'
+const GP2_NEG_ANCHOR = 'textCache.delete(row); '
+function gp2Checks(src) {
+  const fails = []
+  const bad = (m) => fails.push(m)
+  const env = makePinEnv(src, GP2_HOOK)
+  env.exports.apply(context)
+  const api = env.win.__dshStreamfold
+  if (!api) { bad('G-P2 前置失败：apply 未挂出 __dshStreamfold'); return fails }
+  api.set({ autoExpandReasoning: false, foldHistory: false })
+  const scroller = makeElement('div'); scroller.__overflowY = 'auto'; scroller.scrollHeight = 5000; scroller.clientHeight = 600
+  const flow = makeElement('div'); flow.setAttribute('data-chat-flow', '')
+  scroller.appendChild(flow); env.body.appendChild(scroller)
+  const rows = []
+  for (let t = 1; t <= 3; t += 1) {
+    const row = makeElement('div')
+    row.setAttribute('data-chat-flow-kind', 'assistant-step'); row.setAttribute('data-chat-turn', String(t))
+    flow.appendChild(row); rows.push(row)
+    const tail = makeElement('div'); tail.setAttribute('data-turn-tail', String(t)); tail.setAttribute('data-actions-reveal', 'always')
+    flow.appendChild(tail)
+  }
+  try { api.scan() } catch (err) { bad('G-P2 前置失败：scan 抛错 ' + String((err && err.message) || err)); return fails }
+  const T = env.win.__g2
+  if (!T.hot(rows[2])) bad('G-P2 前提：最新一轮应在热集')
+  if (T.hot(rows[0])) bad('G-P2 前提：最老一轮不得在热集（P2 热集 = 最近 2 轮）')
+  if (T.hasText(rows[0]) !== false) bad('G-P2 前提：老行初判应为「无正文」')
+  const c0 = T.calls()
+  if (T.hasText(rows[0]) !== false || T.calls() !== c0) bad('G-P2 前提：冷行必须走缓存（不得重算）')
+  rows[0].appendChild(pinTextNode('最老一轮的新正文'))          // 只改最老一轮行内文本
+  if (T.hasText(rows[0]) !== false) bad('G-P2 前提：observer 未投递前必须仍是缓存值')
+  const mo = env.observers.find((o) => o.opts !== null && o.opts.characterData === true)
+  if (mo === undefined) bad('G-P2 前置失败：找不到结构 observer（opts.characterData）')
+  else {
+    mo.cb([{ type: 'characterData', target: rows[0] }])          // 走 observer 路径（与真实 MutationRecord 同形）
+    if (T.hasText(rows[0]) !== true) bad('G-P2 最老一轮文本变了 ⇒ observer 必须失效该行缓存并重算（实得仍为 false）')
+    if (T.calls() !== c0 + 1) bad('G-P2 失效后必须真的重算一次（hasText 计数 ' + c0 + ' → ' + T.calls() + '）')
+  }
+  api.dispose()
+  return fails
+}
+const gp2Fails = gp2Checks(source)
+assert.equal(gp2Fails.length, 0, 'G-P2 定向失效覆盖所有轮次 —— ' + gp2Fails.join(' | '))
+assert.ok(source.includes(GP2_NEG_ANCHOR), 'G-P2 负向对照锚点丢失（observer 失效循环已变）：判据需复查')
+const gp2NegFails = gp2Checks(source.replace(GP2_NEG_ANCHOR, ''))
+assert.ok(gp2NegFails.length >= 1, 'G-P2 负向对照：失效只靠热集必须转红（实得 ' + gp2NegFails.length + ' 项：' + gp2NegFails.join(' | ') + '）')
+console.log('client-apply: G-P2 (hotRows 3→2 前提) ok — 失效只靠热集负向对照转红 ' + gp2NegFails.length + ' 项：' + gp2NegFails.join(' | '))
+
+/* ---------------- 2026-10-14 G-P5（保留项 P5：THINK 计数跳过 closest，工具卡嵌套判定不得牺牲） ----------------
+ * 判据：THINK 计数路径 closest 调用为 0（P5 的收益就在这），且嵌套工具卡只算外层（else 分支没被牺牲）。
+ * 负向对照内建：退回 HEAD 的「无条件 closest 嵌套判定」⇒ closest>0 ⇒ 必须转红。 */
+const GP5_HOOK = 'window.__g5 = { countCards, THINK, TOOL: ' + JSON.stringify('[data-tool], [data-sample=\'bash\']') + ' };'
+const GP5_OPT = [
+  '  // 优化：THINK 选择器不会嵌套，直接计数（跳过 closest 检查）',
+  '  if (selector === THINK) {',
+  '    n = row.querySelectorAll(selector).length;',
+  '  } else {',
+  '    // 工具卡可能嵌套，保留嵌套判定',
+  '    for (const el of row.querySelectorAll(selector)) {',
+  '      const outer = el.parentElement && el.parentElement.closest(selector);',
+  '      if (outer && row.contains(outer)) continue;',
+  '      n += 1;',
+  '    }',
+  '  }',
+].join('\n')
+const GP5_HEAD = [
+  '  for (const el of row.querySelectorAll(selector)) {',
+  '    const outer = el.parentElement && el.parentElement.closest(selector);',
+  '    if (outer && row.contains(outer)) continue;',
+  '    n += 1;',
+  '  }',
+].join('\n')
+function gp5Checks(src) {
+  const fails = []
+  const bad = (m) => fails.push(m)
+  const env = makePinEnv(src, GP5_HOOK)
+  const T = env.win.__g5
+  const orig = FakeElement.prototype.closest
+  let closest = 0
+  FakeElement.prototype.closest = function (sel) { closest += 1; return orig.call(this, sel) }
+  try {
+    const r1 = makeElement('div')
+    for (let i = 0; i < 3; i += 1) { const t = makeElement('div'); t.setAttribute('data-variant', 'think'); r1.appendChild(t) }
+    closest = 0
+    const n1 = T.countCards(r1, T.THINK)
+    if (n1 !== 3) bad('G-P5 THINK 计数应为 3（实得 ' + n1 + '）')
+    if (closest !== 0) bad('G-P5 THINK 计数路径 closest 调用必须为 0（实得 ' + closest + '）')
+    const r2 = makeElement('div')
+    const outer = makeElement('div'); outer.setAttribute('data-tool', 'bash'); r2.appendChild(outer)
+    const inner = makeElement('div'); inner.setAttribute('data-tool', 'read'); outer.appendChild(inner)
+    const sib = makeElement('div'); sib.setAttribute('data-tool', 'write'); r2.appendChild(sib)
+    const n2 = T.countCards(r2, T.TOOL)
+    if (n2 !== 2) bad('G-P5 嵌套工具卡计数应为 2（外层 + 兄弟；嵌套内层应跳过）（实得 ' + n2 + '）')
+  } finally { FakeElement.prototype.closest = orig }
+  return fails
+}
+const gp5Fails = gp5Checks(source)
+assert.equal(gp5Fails.length, 0, 'G-P5 THINK 计数与嵌套工具卡 —— ' + gp5Fails.join(' | '))
+assert.ok(source.includes(GP5_OPT), 'G-P5 负向对照锚点丢失（countCards 结构已变）：判据需复查')
+const gp5NegFails = gp5Checks(source.replace(GP5_OPT, GP5_HEAD))
+assert.ok(gp5NegFails.length >= 1 && gp5NegFails.some((x) => x.includes('closest 调用必须为 0')), 'G-P5 负向对照：退回 HEAD closest 版本必须转红（实得 ' + gp5NegFails.length + ' 项：' + gp5NegFails.join(' | ') + '）')
+console.log('client-apply: G-P5 (THINK 计数跳 closest) ok — 退回 closest 负向对照转红 ' + gp5NegFails.length + ' 项：' + gp5NegFails.join(' | '))
