@@ -14,6 +14,8 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 - **What you want to watch stays visible**: while a turn runs, only the newest thinking window stays open — capped height, scrolling inside itself.
 - **No scrolling back after a turn**: when it finishes, the view glides back to the message that started it.
 
+**Friendly Steps or this one?** Both sit under `ui`/`chat` and both fold Think and tool rows. The difference is how folding advances (per frame here, three rows per group with a stagger), that only the newest thinking window stays open while a turn runs, that folded rows stay searchable (`hidden=until-found`, so Ctrl+F still finds them), and that a finished turn puts you back at your question. The overlap is real, so pick one.
+
 ## What it looks like once installed
 
 - **You can watch it think.** The newest thinking window of the running turn opens automatically (height configurable); older ones fold back into a one-line summary after a grace period. Superseded windows and past turns no longer fight for the scroll position.
@@ -77,7 +79,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 
 - **Client-side presentation only**: it reads the conversation DOM, makes no network requests, touches no credentials and never modifies DSH source.
 - **The host half writes nothing**: no file I/O, no routes, no exported Config; settings live in browser localStorage only (key `dsh-streamfold`, scoped to the page origin).
-- **Official mode changes are reversible**: the transcript view is read and written through the DSH settings service, and while our row is available only the official row is hidden (visibility, reversible).
+- **Official mode changes are reversible**: choosing Fold writes the official `ui-chat` `transcriptView` to Verbose (avoiding double folding) and hides that official settings row; the value is read and written through the DSH settings service, and uninstalling or switching back to an official mode restores it.
 - **Clean uninstall**: the settings row, window markers, back-to-bottom button and injected styles are all removed, with no leftover inline `max-height` or hidden attributes.
 
 ## Settings (22 items)
