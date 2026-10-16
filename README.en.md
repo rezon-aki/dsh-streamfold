@@ -79,7 +79,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 
 - **Client-side presentation only**: it reads the conversation DOM, makes no network requests, touches no credentials and never modifies DSH source.
 - **The host half writes nothing**: no file I/O, no routes, no exported Config; settings live in browser localStorage only (key `dsh-streamfold`, scoped to the page origin).
-- **Official mode changes are reversible**: choosing Fold writes the official `ui-chat` `transcriptView` to Verbose (avoiding double folding) and hides that official settings row; the value is read and written through the DSH settings service, and uninstalling or switching back to an official mode restores it.
+- **Official mode changes are reversible**: choosing Fold writes the official `ui-chat` `transcriptView` to Verbose (avoiding double folding) and hides that official settings row; switching back to an official mode from this plugin writes the chosen mode back, and uninstalling leaves the official value on Verbose until it is changed in the official settings.
 - **Clean uninstall**: the settings row, window markers, back-to-bottom button and injected styles are all removed, with no leftover inline `max-height` or hidden attributes.
 
 ## Settings (22 items)
