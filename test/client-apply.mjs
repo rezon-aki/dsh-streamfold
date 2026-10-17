@@ -1132,3 +1132,41 @@ assert.ok(source.includes(GP5_OPT), 'G-P5 负向对照锚点丢失（countCards 
 const gp5NegFails = gp5Checks(source.replace(GP5_OPT, GP5_HEAD))
 assert.ok(gp5NegFails.length >= 1 && gp5NegFails.some((x) => x.includes('closest 调用必须为 0')), 'G-P5 负向对照：退回 HEAD closest 版本必须转红（实得 ' + gp5NegFails.length + ' 项：' + gp5NegFails.join(' | ') + '）')
 console.log('client-apply: G-P5 (THINK 计数跳 closest) ok — 退回 closest 负向对照转红 ' + gp5NegFails.length + ' 项：' + gp5NegFails.join(' | '))
+
+/* ---------------- 0.7.9：DSH 0.2.1 新增的官方「工作步骤收起时机」行（折叠档隐藏 / 官方档恢复） ----------------
+ * 0.2.1 把「工作步骤展示」与「工作步骤收起时机」放进同一个 settings.general.item（两行）。
+ * 折叠档官方不折，收起时机没有实际作用 ⇒ 与展示档行一起隐藏；官方档该设置仍有效 ⇒ 恢复可见。
+ * 负向对照：修前快照（2852469）只在 apply 时同步一次、切档不同步 ⇒ 收起时机行永不隐藏，本用例转红。 */
+{
+  const current = windowStub.__dshStreamfold
+  const mkOfficialRow = (suffix, buttonText, rowText) => {
+    const row = makeElement('div'); row.className = 'probe' + suffix + '_row'
+    const button = makeElement('button'); button.setAttribute('aria-haspopup', 'menu'); button.textContent = buttonText
+    const label = makeElement('span'); label.textContent = rowText
+    row.appendChild(button); row.appendChild(label)
+    return row
+  }
+  const own = makeElement('div'); own.className = 'dshsf-row'
+  const select = makeElement('div'); select.className = 'dshsf-select'
+  own.appendChild(select)
+  const displayRow = mkOfficialRow('a', '详细', '工作步骤展示 选择希望看到多少工具调用细节')
+  const collapseRow = mkOfficialRow('b', '回答结束后', '工作步骤收起时机 选择何时自动收起工作步骤')
+  for (const el of [own, displayRow, collapseRow]) documentStub.body.appendChild(el)
+  const hidden = (row) => row.hasAttribute('data-dshsf-hide-official')
+  try {
+    current.chooseDisplay('fold')
+    assert.equal(hidden(displayRow), true, '0.7.9：折叠档官方「工作步骤展示」行应隐藏')
+    assert.equal(hidden(collapseRow), true, '0.7.9：折叠档官方「工作步骤收起时机」行应一并隐藏（修前快照上转红）')
+    current.chooseDisplay('standard')
+    assert.equal(hidden(displayRow), true, '0.7.9：官方档官方「工作步骤展示」行仍应隐藏（我方行在）')
+    assert.equal(hidden(collapseRow), false, '0.7.9：官方档官方「工作步骤收起时机」行应恢复可见')
+    current.chooseDisplay('fold')
+    assert.equal(hidden(collapseRow), true, '0.7.9：切回折叠档收起时机行应再次隐藏')
+  } finally {
+    // 卸载链：真实运行时由 fiber 卸载触发 ctx.effect 的 disposer；夹具里直接跑页面级 disposer 列表（同一条清理链）。
+    for (const d of (windowStub.__dshsfPageSlots || [])) { try { d() } catch {} }
+    assert.equal(hidden(displayRow) || hidden(collapseRow), false, '0.7.9：卸载链跑完官方行标记应摘净')
+    for (const el of [own, displayRow, collapseRow]) el.remove()
+  }
+  console.log('client-apply: 0.7.9 设置页收起时机行（折叠档隐藏 / 官方档恢复 / dispose 净） ok')
+}
