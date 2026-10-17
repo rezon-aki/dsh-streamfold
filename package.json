@@ -1,6 +1,6 @@
 {
   "name": "dsh-streamfold",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "description": "流式折叠：会话窗口展示增强——运行中自动展开最新思考小窗、旧过程行折成摘要，跑完把思考与工具调用折起而穿插正文保留；逐帧推进，不依赖历史加载完。 · Stream Fold: the newest thinking window opens itself while older process rows fold into one summary; a finished turn folds thinking and tool calls away and the prose stays.",
   "type": "module",
   "main": "./lib/index.js",
@@ -45,16 +45,18 @@
     "url": "https://github.com/rezon-aki/dsh-streamfold/issues"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=20",
+    "dsh": ">=0.2.1-rc.1 <0.3.0"
   },
   "dsh": {
     "engines": {
-      "dsh": ">=0.2.0-rc.2"
+      "dsh": ">=0.2.1-rc.1 <0.3.0"
     },
     "compatibility": {
-      "dsh": ">=0.2.0-rc.2 <0.3.0",
+      "dsh": ">=0.2.1-rc.1 <0.3.0",
       "dshReleases": {
-        "0.2.0-rc.2": "compatible"
+        "0.2.0-rc.2": "compatible",
+        "0.2.1-rc.2": "compatible"
       },
       "profiles": [
         "web"

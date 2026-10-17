@@ -50,7 +50,7 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.2.0-rc.2** (verified on **0.2.1-rc.2**; the official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x).
+Requires DSH **>= 0.2.1-rc.1** (verified on **0.2.1-rc.2**; 0.2.0-rc.2 remains compatible and is listed in the compatibility matrix. The official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x).
 
 Uninstall: remove it in the plugin panel, or
 
