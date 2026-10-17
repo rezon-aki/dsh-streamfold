@@ -156,7 +156,7 @@
 | 无构建步骤 | 手写 `lib/`，`lib/client.js` 包在 `window.__ModuleLoader__.load({id, factory})` 里；只能 require 宿主模块（无相对引入）⇒ 事实上单文件 3811 行（0.7.3 基线）|
 | 零依赖 / 零网络 | 不发网络请求、不接触凭据、不读写宿主文件；`lib/index.js` 不导出 Config、不注册路由 |
 | DOM 契约 | 全部靠官方语义属性定位：`[data-chat-flow]`、`[data-chat-flow-kind]`、`[data-chat-turn]`、`[data-disclosure-row][aria-expanded]`、`[data-variant=think]`、`[data-tool]`、`[data-sample=bash]`、`[class*=_thinkBody]`、`[class*=_bodyWrap]`、`[data-context-injection-body]`、`[data-conversation-session]`。**不用 CSS module 哈希** |
-| 兼容声明 | `engines.dsh >= 0.2.0-rc.2`，`compatibility < 0.3.0`；实测 `0.2.0-rc.2` |
+| 兼容声明 | 顶层 `engines.dsh` 与 `dsh.compatibility.dsh` 同源 `>=0.2.1-rc.1 <0.3.0`（0.2.1 启动门读顶层字段）；`dshReleases` 精确矩阵 = `0.2.0-rc.2` / `0.2.1-rc.2`；实测 `0.2.0-rc.2`、`0.2.1-rc.2`（2026-10-17 契约面 + 真机复核） |
 | 加载 | 改 `lib/*.js` 后重载插件 + **刷新浏览器页面** |
 | 验收 | `npm test`；另有维护者本地的验收矩阵（21 项）与专项负向对照装置 |
 

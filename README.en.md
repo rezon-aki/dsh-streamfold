@@ -50,7 +50,7 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.2.0-rc.2** (the official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x).
+Requires DSH **>= 0.2.0-rc.2** (verified on **0.2.1-rc.2**; the official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x).
 
 Uninstall: remove it in the plugin panel, or
 
@@ -62,7 +62,7 @@ Restart the profile and the official behaviour is back.
 
 ## Usage
 
-Settings → General → **Work details**: this row is provided by the plugin (the official row is hidden while ours is available; visibility only, reversible), with the official four modes plus **Fold**:
+Settings → General → **Work details**: this row is provided by the plugin (the official row is hidden while ours is available; visibility only, reversible — on 0.2.1 the official "when to collapse work details" row is hidden too in Fold mode and restored in the official modes), with the official four modes plus **Fold**:
 
 | Option | Behaviour |
 | --- | --- |
@@ -79,7 +79,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 
 - **Client-side presentation only**: it reads the conversation DOM, makes no network requests, touches no credentials and never modifies DSH source.
 - **The host half writes nothing**: no file I/O, no routes, no exported Config; settings live in browser localStorage only (key `dsh-streamfold`, scoped to the page origin).
-- **Official mode changes are reversible**: choosing Fold writes the official `ui-chat` `transcriptView` to Verbose (avoiding double folding) and hides that official settings row; switching back to an official mode from this plugin writes the chosen mode back, and uninstalling leaves the official value on Verbose until it is changed in the official settings.
+- **Official mode changes are reversible**: choosing Fold writes the official `ui-chat` `transcriptView` to Verbose (avoiding double folding) and hides the official settings rows (on 0.2.1 that includes the "when to collapse" row); switching back to an official mode writes the chosen mode back and restores that row, and uninstalling leaves the official value on Verbose until it is changed in the official settings.
 - **Clean uninstall**: the settings row, window markers, back-to-bottom button and injected styles are all removed, with no leftover inline `max-height` or hidden attributes.
 
 ## Settings (22 items)
