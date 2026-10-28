@@ -113,16 +113,16 @@ Settings live in browser localStorage, scoped to the DSH page origin.
 
 ## Diagnostics
 
-Browser console:
+Browser console (`__dshStreamfold` is the only public debug surface):
 
 ```js
-__dshStreamfold.stats()          // window / fold / chip counts (incl. animation state)
-__dshStreamfold.probe()          // row state, still-visible thinking rows, window animation, jump button, spark cost, follow detail
 __dshStreamfold.state()          // current settings + official "Work details" snapshot
 __dshStreamfold.set({ smoothGrow: 0.1, supersedeDelay: 3 })
+__dshStreamfold.scan()           // rescan the current DOM immediately (settings unchanged)
+__dshStreamfold.dispose()        // tear down all injections (idempotent; refresh restores native)
 ```
 
-When reporting an issue, attach the `probe()` output and your DSH version.
+When reporting an issue, attach your DSH version and the `__dshStreamfold.state()` output. Frame tracing and cost aggregation live in the maintainer's local dev probe plugin, not in the published package.
 
 ## Development and verification
 

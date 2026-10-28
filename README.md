@@ -113,16 +113,16 @@ dsh plugin --profile web remove dsh-streamfold
 
 ## 诊断
 
-浏览器控制台：
+浏览器控制台（`__dshStreamfold` 是本插件唯一公开的调试出口）：
 
 ```js
-__dshStreamfold.stats()          // 窗口 / 折叠 / 折叠条计数（含动效状态）
-__dshStreamfold.probe()          // 行状态、还看得见的思考行、小窗动画、回底按钮、火花开销、跟随明细
 __dshStreamfold.state()          // 当前设置 + 官方「工作步骤展示」取值快照
 __dshStreamfold.set({ smoothGrow: 0.1, supersedeDelay: 3 })
+__dshStreamfold.scan()           // 立即按当前 DOM 重扫一次（不改设置）
+__dshStreamfold.dispose()        // 撤掉全部注入（幂等；卸载后刷新页面即恢复原生）
 ```
 
-报问题时附上 `probe()` 的输出与 DSH 版本，定位会快很多。
+报问题时附上 DSH 版本与 `__dshStreamfold.state()` 的输出。逐帧追踪与成本聚合由维护者本地的开发探针插件提供，不在发布物里。
 
 ## 开发与验收
 
