@@ -1,6 +1,6 @@
 {
   "name": "dsh-streamfold",
-  "version": "0.7.10",
+  "version": "0.7.11",
   "description": "流式折叠：会话窗口展示增强——运行中自动展开最新思考小窗、旧过程行折成摘要，跑完把思考与工具调用折起而穿插正文保留；逐帧推进，不依赖历史加载完。 · Stream Fold: the newest thinking window opens itself while older process rows fold into one summary; a finished turn folds thinking and tool calls away and the prose stays.",
   "type": "module",
   "main": "./lib/index.js",
@@ -34,7 +34,13 @@
     "transcript",
     "fold",
     "streaming",
-    "display-mode"
+    "display-mode",
+    "fold-thinking",
+    "tool-calls",
+    "long-session",
+    "折叠",
+    "思考链",
+    "长会话"
   ],
   "repository": {
     "type": "git",

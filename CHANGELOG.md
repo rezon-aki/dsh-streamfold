@@ -2,6 +2,14 @@
 
 本项目按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 的组织方式记录用户可感知的变化；版本号遵循语义化版本。
 
+## [0.7.11] — 2026-10-29
+
+- 调整：README 双语首屏重写——一句话卖点、与官方「工作步骤展示」/ Friendly Steps 的差别表、安装段的兼容性表（`engines.dsh` 为唯一真源）。
+- 调整：新增 20 秒演示 GIF（`screenshots/03-demo.gif`，640×564 / 8fps，右侧栏已裁掉），README 双语首屏展示折叠与「跑完回到提问」的完整过程。
+- 调整：仓库 About 与精选列表条目描述压成一句（差异点前置）；npm 检索词补 `fold-thinking`、`tool-calls`、`long-session`、`折叠`、`思考链`、`长会话`。
+- 修复：GitHub Release 补传 `dsh-streamfold.tgz` 发布资产——精选目录的 `releases/latest/download/` 之前因无资产而 404。
+- 调整：无客户端代码变更（`lib/client.js` 仍为 229390 B / sha256 `5e84ad5f…`）。
+
 ## [0.7.10] — 2026-10-29
 
 - 调整：长会话的扫描与帧推进开销下降——去掉诊断用的写后强制布局、40ms 后回读与逐行折叠定时器（最重形态首扫 350 行 61→13 ms、700 行 192→21 ms；真机长会话流式扫描 p90 降约 20%，不新增长时间阻塞）。

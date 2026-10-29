@@ -4,7 +4,9 @@
 [![format](https://img.shields.io/badge/format-DSH%20bundle-blueviolet.svg)](cordis.patch.yml)
 [![npm](https://img.shields.io/badge/npm-dsh--streamfold-CB3837.svg)](https://www.npmjs.com/package/dsh-streamfold)
 
-> A better conversation window: the newest thinking window opens automatically while a turn runs, the other process rows fold into a single summary, and when the turn finishes the thinking and tool calls fold away while interleaved prose stays. Everything advances per frame, like water.
+> The newest thinking window stays open while the rest of the process folds into one summary; when a turn finishes, the view glides back to your prompt. Folding advances per frame, and folded content stays Ctrl+F searchable.
+
+![Demo (20 s): only the newest thinking window stays open while the rest folds into one summary, and a finished turn glides back to your prompt](https://github.com/rezon-aki/dsh-streamfold/blob/main/screenshots/03-demo.gif?raw=true)
 
 ## Why it exists
 
@@ -14,7 +16,17 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 - **What you want to watch stays visible**: while a turn runs, only the newest thinking window stays open — capped height, scrolling inside itself.
 - **No scrolling back after a turn**: when it finishes, the view glides back to the message that started it.
 
-**Friendly Steps or this one?** Both sit under `ui`/`chat` and both fold Think and tool rows. The difference is how folding advances (per frame here, three rows per group with a stagger), that only the newest thinking window stays open while a turn runs, that folded rows stay searchable (`hidden=until-found`, so Ctrl+F still finds them), and that a finished turn puts you back at your question. The overlap is real, so pick one.
+**How it differs from the official modes and Friendly Steps**
+
+| | Official "Work details" | This plugin's Fold |
+| --- | --- | --- |
+| When it folds | Only once history has loaded; folding stalls while history is still loading | Folds on its own terms, independent of history loading |
+| Thinking while running | Process rows fold too — you see the summary | Only the running turn's newest thinking window stays open (capped, self-scrolling) |
+| After a turn | Stops at the bottom; you scroll back yourself | Glides back to the message that started the turn |
+| Finding folded content | Expand it again | `hidden=until-found`, so Ctrl+F still hits it |
+| Reading a past turn | Scroll up to find its prompt | That turn's prompt stays pinned at the top |
+
+It overlaps with **Friendly Steps** (`ui`/`chat`, also folds Think and tool rows), so pick one; the differences are mainly the last three rows above plus the per-frame, three-rows-per-group folding rhythm.
 
 ## What it looks like once installed
 
@@ -50,7 +62,15 @@ dsh plugin --profile web add https://github.com/rezon-aki/dsh-streamfold
 
 Restart the profile, then **refresh the browser page** (client code is injected at page load).
 
-Requires DSH **>= 0.2.1-rc.1** (verified on **0.2.1-rc.2**; 0.2.0-rc.2 remains compatible and is listed in the compatibility matrix. The official transcript view is owned by the `configForms` service; on the 0.1.7 series use 0.5.0, and on 0.1.5 and earlier use 0.4.x).
+Compatibility (`engines.dsh` in `package.json` is the single source of truth; the plugin panel and the market read it to judge compatibility):
+
+| Plugin version | Supported DSH |
+| --- | --- |
+| 0.7.x (this release) | `>=0.2.1-rc.1 <0.3.0`; verified on **0.2.1-rc.2**, 0.2.0-rc.2 listed as compatible |
+| 0.5.0 | the 0.1.7 series |
+| 0.4.x | 0.1.5 and earlier |
+
+The official transcript modes are owned by the `configForms` service; Node >= 20.
 
 Uninstall: remove it in the plugin panel, or
 
