@@ -123,6 +123,14 @@ class FakeElement {
   querySelector(sel) { const all = this.querySelectorAll(sel); return all.length ? all[0] : null }
   getElementsByTagName(name) { const t = String(name).toUpperCase(); return descendants(this).filter((el) => name === '*' || el.tagName === t) }
 }
+
+/* 门禁侧自测：FakeElement 的 scrollTop 落地写计数（原模块级 writeCount；C8 后产品无内部计数）。
+ * 每个元素记在自己的 __writes 上，不依赖产品内部状态；被接管后产品经 desc.set 落地的写同样经过这里。 */
+Object.defineProperty(FakeElement.prototype, "scrollTop", {
+  configurable: true,
+  get() { return this._st === undefined ? 0 : this._st },
+  set(v) { this._st = Number(v); this.__writes = (this.__writes || 0) + 1 },
+})
 function makeElement(tag = 'div') { return new FakeElement(tag) }
 
 const head = makeElement('head')
@@ -434,7 +442,7 @@ const r1 = (name, fn) => { try { fn(); console.log('client-apply: ' + name + ' o
 
 // B1：release(reader) 交权后锚定补偿不得再写回滚轮位置
 r1('R1-B1', () => {
-  const env = makeR1Env('window.__sfR1 = { hold, anchorDuring, anchorSync, noteScrollIntent, ctl: () => anchorCtl, writes: () => writeCount };')
+  const env = makeR1Env('window.__sfR1 = { hold, anchorDuring, anchorSync, noteScrollIntent, ctl: () => anchorCtl };')
   const { scroller, flow } = r1Chat(env)
   const row = makeElement('div'); row.setAttribute('data-chat-flow-kind', 'assistant-step'); row.setAttribute('data-chat-turn', '1')
   row.getBoundingClientRect = () => ({ top: 1000 - scroller.scrollTop, bottom: 1040 - scroller.scrollTop, left: 0, right: 800, width: 800, height: 40, x: 0, y: 0 })
@@ -445,10 +453,10 @@ r1('R1-B1', () => {
   assert.notEqual(T.ctl(), null, 'B1 前提：anchorDuring 应建立锚定窗口')
   T.noteScrollIntent({ type: 'wheel', deltaY: -100, deltaX: 0, target: row })   // 真实输入 ⇒ release('reader')
   scroller.scrollTop = 300                                                      // 浏览器把读者落到 300
-  const writes0 = T.writes()
+  const writes0 = scroller.__writes || 0                                       // 门禁侧自记：滚动落地写次数
   T.anchorSync()                                                                // 修前：RO/rAF 补偿把位置写回被点行
   assert.equal(scroller.scrollTop, 300, 'B1：reader 接管后 anchorSync 不得写回滚轮位置')
-  assert.equal(T.writes(), writes0, 'B1：reader 接管后不得新增锚定补偿写')
+  assert.equal(scroller.__writes || 0, writes0, 'B1：reader 接管后不得新增锚定补偿写')
   assert.equal(T.ctl(), null, 'B1：release(reader) 应立即停锚（恢复 overflowAnchor / 断开 RO）')
   assert.equal(scroller.style.overflowAnchor, '', 'B1：release(reader) 必须还原 overflow-anchor（M1 变异体：只清 anchorCtl ⇒ 转红）')
   assert.ok(env.ros.length > 0 && env.ros.every((ro) => ro.targets.size === 0), 'B1：release(reader) 必须断开 anchorRO（M1 变异体：只清 anchorCtl ⇒ 转红）')
@@ -456,7 +464,7 @@ r1('R1-B1', () => {
 
 // B1 对照：未交权（writer=us）时锚定补偿照常把被点行钉回原屏幕位置（防"停锚"误伤正常路径）
 r1('R1-B1-live', () => {
-  const env = makeR1Env('window.__sfR1b = { hold, anchorDuring, anchorSync, ctl: () => anchorCtl, writes: () => writeCount };')
+  const env = makeR1Env('window.__sfR1b = { hold, anchorDuring, anchorSync, ctl: () => anchorCtl };')
   const { scroller, flow } = r1Chat(env)
   const row = makeElement('div'); row.setAttribute('data-chat-flow-kind', 'assistant-step'); row.setAttribute('data-chat-turn', '1')
   let docTop = 1000
@@ -467,10 +475,10 @@ r1('R1-B1-live', () => {
   T.hold()
   T.anchorDuring(row, row.getBoundingClientRect().top, 500)   // 钉在屏幕 800
   docTop = 1100                                               // 上方内容长高 100px：行的屏幕位置下移
-  const writes0 = T.writes()
+  const writes0 = scroller.__writes || 0                                       // 门禁侧自记：滚动落地写次数
   T.anchorSync()
   assert.equal(scroller.scrollTop, 300, 'B1 对照：writer=us 时锚定补偿应把被点行钉回原屏幕位置')
-  assert.equal(T.writes(), writes0 + 1, 'B1 对照：锚定补偿是一笔我方写')
+  assert.equal(scroller.__writes || 0, writes0 + 1, 'B1 对照：锚定补偿是一笔我方写')
   assert.notEqual(T.ctl(), null, 'B1 对照：窗口未到期/未交权时不得停锚')
 })
 
@@ -808,7 +816,7 @@ await (async () => {
 await (async () => {
   let name = 'R4-B4'
   try {
-    const env = makeR4Env('window.__sfR4 = { mainFollowTick, get: () => ({ writer, goal: goalKind, navActive: navActive ? 1 : 0, goalPos, followScroller, blocked: snapBlocked, ext: extWrites }) };')
+    const env = makeR4Env('window.__sfR4 = { mainFollowTick, get: () => ({ writer, goal: goalKind, navActive: navActive ? 1 : 0, goalPos, followScroller }) };')
     env.exports.apply(context)
     const T = env.win.__sfR4
     const mkScene = (sh) => {
@@ -837,7 +845,6 @@ await (async () => {
     T.mainFollowTick(16.7)
     assert.equal(T.get().followScroller, B.scroller, 'R4 前提：主容器应换成 B')
     assert.equal(T.get().writer, 'us', 'R4 前提：B 已在末端 ⇒ 接管后 writer=us')
-    const blocked0 = T.get().blocked
     B.row.scrollIntoView({ block: 'start' })
     await Promise.resolve()
     const moved = { top: B.scroller.scrollTop, ...T.get() }
@@ -850,7 +857,8 @@ await (async () => {
     await Promise.resolve()
     const bottom = T.get()
     assert.equal(B.scroller.scrollTop, 4400, 'R4-B4：贴底写不得移动容器')
-    assert.equal(bottom.blocked, blocked0 + 1, 'R4-B4：贴底写仍走吸收分支（blocked+1）')
+    assert.equal(bottom.writer, 'us', 'R4-B4：贴底写不得交权（吸收分支必须保持 writer=us、不改目标）')
+    assert.equal(moved.writer, 'us', 'R4-B4：换容器后写权应仍在我方')
     assert.equal(bottom.goal, 'position', 'R4-B4：贴底写不改变既有目标')
     console.log('client-apply: ' + name + ' ok')
     env.win.__dshStreamfold.dispose()
@@ -931,14 +939,13 @@ function makePinEnv(src, hook) {
 }
 /** 只暴露本段判据要用的既有内部名（tick 里 frameSh/frameCh 先在 1716 读到、pinned 在 1721 —— 这里按同序模拟一帧）。 */
 const PIN_HOOK = 'window.__sfPin = { tick: (sc, sh, ch) => { frameSh = sh; frameCh = ch; pinTick(sc); },'
-  + ' rows: (r) => { pinRows = r; }, prompt: (v) => { state.pinPrompt = v; }, pinRow: () => pinRow, rects: () => pinRects };'
-/** 负向对照：把「只认 scrollTop 的朴素 skip」注入回退后的每帧版（谁再塞回去，本段必须转红）。 */
-const PIN_DECL_ANCHOR = 'let pinRects = 0;'
-const PIN_BODY_ANCHOR = '  pinRects += 2;   // 该函数每帧固定两次 getBoundingClientRect 级别测量（行 + 容器）'
+  + ' rows: (r) => { pinRows = r; }, prompt: (v) => { state.pinPrompt = v; }, pinRow: () => pinRow };'
+/** 负向对照：把「只认 scrollTop 的朴素 skip」注入回退后的每帧版（谁再塞回去，本段必须转红）。
+ *  C8 后产品无 pinRects 计数：锚点换成 pinTickInner 的"每帧重算"不变式守卫（行为不变量）。 */
+const PIN_BODY_ANCHOR = '  const hide = hidePinBar;\n  if (state.pinPrompt !== true || pinRows.length === 0) { hide(); return; }'
 function injectNaivePinSkip(src) {
-  assert.ok(src.includes(PIN_DECL_ANCHOR) && src.includes(PIN_BODY_ANCHOR), 'R5 负向对照锚点丢失（pinTickInner 结构已变）：判据需复查')
-  return src.replace(PIN_DECL_ANCHOR, PIN_DECL_ANCHOR + '\nlet pinLastScrollTop = -1;')
-    .replace(PIN_BODY_ANCHOR, '  if (Math.abs(scroller.scrollTop - pinLastScrollTop) < 1) return;   // neg-control：朴素 skip（只认 scrollTop）\n  pinLastScrollTop = scroller.scrollTop;\n' + PIN_BODY_ANCHOR)
+  assert.ok(src.includes(PIN_BODY_ANCHOR), 'R5 负向对照锚点丢失（pinTickInner 结构已变）：判据需复查')
+  return src.replace(PIN_BODY_ANCHOR, '  if (Math.abs(scroller.scrollTop - (window.__pinLastST ?? -1)) < 1) return;   // neg-control：朴素 skip（只认 scrollTop）\n  window.__pinLastST = scroller.scrollTop;\n' + PIN_BODY_ANCHOR)
 }
 
 function pinChecks(src) {
@@ -946,6 +953,29 @@ function pinChecks(src) {
   const bad = (m) => fails.push(m)
   const env = makePinEnv(src, PIN_HOOK)
   const T = env.win.__sfPin
+  // 门禁侧自测：pinTickInner 每帧固定 2 次几何测量（容器 1 + 被钉行 1）——在夹具函数上数（原产品 pinRects 计数）。
+  let rectRows = []
+  let rowsNow = []
+  let promptNow = true
+  const setRows = (rows) => { rowsNow = rows; rectRows = rows; T.rows(rows) }
+  const setPrompt = (v) => { promptNow = v; T.prompt(v) }
+  const tick = (sc, sh, ch) => {
+    const sc0 = sc.__rectN || 0
+    const rows0 = rectRows.reduce((a, r) => a + (r.__rectN || 0), 0)
+    T.tick(sc, sh, ch)
+    const dSc = (sc.__rectN || 0) - sc0
+    const dRows = rectRows.reduce((a, r) => a + (r.__rectN || 0), 0) - rows0
+    // 原产品 pinRects 是写死的 +=2（「行 + 容器」两次测量级别）；真实 gBCR 次数：容器恒 1 + 行 1..O(log n)。
+    // 本门守同一意图：容器每帧恰好 1 次、行至少 1 次、且不随总行数线性（上界 2+2·log2(n)）；空集/关开关时 0。
+    if (promptNow !== true || rowsNow.length === 0) {
+      if (dSc !== 0 || dRows !== 0) bad('R5 空集/关开关帧不得测量：容器=' + dSc + ' 行=' + dRows)
+      return
+    }
+    const bound = 2 + 2 * Math.ceil(Math.log2(rowsNow.length + 1))
+    if (dSc !== 1) bad('R5 pinTick 每帧必须恰好测容器 1 次（实得 ' + dSc + '）')
+    if (dRows < 1) bad('R5 pinTick 每帧至少要测钉住行 1 次（实得 ' + dRows + '）')
+    if (dRows > bound) bad('R5 pinTick 行测量必须 O(log n)（避免逐行循环）：行=' + dRows + ' 上界=' + bound)
+  }
   const bar = () => env.doc.querySelector('[data-dshsf-pin]')
   const where = () => bar() === null ? '(无置顶条)'
     : [bar().style.top, bar().style.left, bar().style.width, bar().hasAttribute('data-dshsf-visible') ? 'visible' : 'hidden', JSON.stringify(bar().textContent)].join('/')
@@ -955,6 +985,8 @@ function pinChecks(src) {
     scroller.scrollHeight = sh; scroller.clientHeight = ch; scroller.scrollTop = top
     scroller.__rect = { top: 0, left: 0, width: 800, height: ch }
     scroller.getBoundingClientRect = () => { const r = scroller.__rect; return { top: r.top, left: r.left, right: r.left + r.width, bottom: r.top + r.height, width: r.width, height: r.height, x: r.left, y: r.top } }
+    scroller.__rectN = 0
+    { const rect0 = scroller.getBoundingClientRect; scroller.getBoundingClientRect = () => { scroller.__rectN += 1; return rect0() } }
     const flow = makeElement('div'); flow.setAttribute('data-chat-flow', '')
     scroller.appendChild(flow); env.body.appendChild(scroller)
     return { scroller, flow }
@@ -963,6 +995,8 @@ function pinChecks(src) {
     const row = makeElement('div'); row.setAttribute('data-chat-flow-kind', 'user')
     row.appendChild(pinTextNode(text)); row.__docTop = docTop
     row.getBoundingClientRect = () => { const top = row.__docTop - scene.scroller.scrollTop; return { top, bottom: top + 40, left: 0, right: 800, width: 800, height: 40, x: 0, y: top } }
+    row.__rectN = 0
+    { const rect0 = row.getBoundingClientRect; row.getBoundingClientRect = () => { row.__rectN += 1; return rect0() } }
     scene.flow.appendChild(row)
     return row
   }
@@ -970,52 +1004,52 @@ function pinChecks(src) {
   const A = mkScene(5000, 600, 1500)                 // 视口线 = doc 1500
   const q1 = mkRow(A, 'Q1', 1000)                    // 线之上
   const q2 = mkRow(A, 'Q2', 2000)                    // 线之下
-  T.rows([q1, q2])
-  T.tick(A.scroller, 5000, 600)
+  setRows([q1, q2])
+  tick(A.scroller, 5000, 600)
   if (bar() === null) { bad('R5 前置失败：置顶条未创建'); return fails }
   if (!bar().hasAttribute('data-dshsf-visible')) bad('R5 前置失败：置顶条应可见 —— ' + where())
   if (T.pinRow() !== q1) bad('R5 前置失败：应钉住 q1（实得 ' + label(T.pinRow()) + '）')
   if (bar().textContent !== 'Q1') bad('R5 前置失败：文案应为 Q1 —— ' + where())
 
   // ① P3-a：不滚动，关掉开关 ⇒ 必须收起；恢复 ⇒ 必须重新露出
-  T.prompt(false)
-  T.tick(A.scroller, 5000, 600)
+  setPrompt(false)
+  tick(A.scroller, 5000, 600)
   if (bar().hasAttribute('data-dshsf-visible')) bad('P3-a 关掉置顶显示且不滚动 ⇒ 必须收起 —— ' + where())
-  T.prompt(true)
-  T.tick(A.scroller, 5000, 600)
+  setPrompt(true)
+  tick(A.scroller, 5000, 600)
   if (!bar().hasAttribute('data-dshsf-visible')) bad('P3-a 开关恢复（同一滚动位置）⇒ 必须重新露出 —— ' + where())
 
   // ② P3-a：不滚动，行集合清空 ⇒ 必须收起
-  T.rows([])
-  T.tick(A.scroller, 5000, 600)
+  setRows([])
+  tick(A.scroller, 5000, 600)
   if (bar().hasAttribute('data-dshsf-visible')) bad('P3-a 行集合清空且不滚动 ⇒ 必须收起 —— ' + where())
-  T.rows([q1, q2])
-  T.tick(A.scroller, 5000, 600)
+  setRows([q1, q2])
+  tick(A.scroller, 5000, 600)
 
   // ③ P3-b：不滚动，布局上移 + 扫描重算出新行数组（新提问行/折叠展开）⇒ 钉住的行与文案必须跟上
   q2.__docTop = 1200
-  T.rows([q1, q2])
-  T.tick(A.scroller, 5000, 600)
+  setRows([q1, q2])
+  tick(A.scroller, 5000, 600)
   if (T.pinRow() !== q2) bad('P3-b 布局上移+行集合换新但不滚动 ⇒ 应改钉 q2（实得 ' + label(T.pinRow()) + '）')
   if (bar().textContent !== 'Q2') bad('P3-b 文案必须跟上为 Q2 —— ' + where())
 
   // ④ P3-b：不滚动，容器换尺寸/挪位置（resize / 流式长高）⇒ 必须重排
   A.scroller.__rect = { top: 120, left: 40, width: 640, height: 400 }
-  T.tick(A.scroller, 5000, 400)
+  tick(A.scroller, 5000, 400)
   if (bar().style.top !== '120px' || bar().style.left !== '40px' || bar().style.width !== '640px') bad('P3-b 容器换尺寸/挪位置且不滚动 ⇒ 必须重排 —— ' + where())
 
   // ⑤ P3-b：不滚动，视口变小到放不下 ⇒ 必须收起；恢复 ⇒ 必须重新露出
   env.win.innerHeight = 100
-  T.tick(A.scroller, 5000, 400)
+  tick(A.scroller, 5000, 400)
   if (bar().hasAttribute('data-dshsf-visible')) bad('P3-b 视口变小且不滚动 ⇒ 必须收起 —— ' + where())
   env.win.innerHeight = 800
-  T.tick(A.scroller, 5000, 400)
+  tick(A.scroller, 5000, 400)
   if (!bar().hasAttribute('data-dshsf-visible')) bad('P3-b 视口恢复（同一滚动位置）⇒ 必须重新露出 —— ' + where())
 
   // ⑥ P3-b：不滚动，换会话容器（同一 scrollTop、不同位置/宽度）⇒ 必须按新容器重排
   const B = mkScene(5000, 600, 1500)
   B.scroller.__rect = { top: 0, left: 12, width: 700, height: 600 }
-  T.tick(B.scroller, 5000, 600)
+  tick(B.scroller, 5000, 600)
   if (bar().style.top !== '0px' || bar().style.left !== '12px' || bar().style.width !== '700px') bad('P3-b 换容器（同一 scrollTop）⇒ 必须按新容器重排 —— ' + where())
   return fails
 }
@@ -1027,12 +1061,12 @@ assert.ok(naiveFails.length >= 3, 'R5 负向对照：把朴素 skip 注入回来
 console.log('client-apply: R5 (置顶条行为不变量) ok — 注入朴素 skip 负向对照转红 ' + naiveFails.length + ' 项：' + naiveFails.join(' | '))
 
 /* ---------------- 2026-10-14 G-P2（保留项 P2：hotRows 3→2 的前提 —— 定向失效必须覆盖所有轮次） ----------------
- * P2 把热集从最近 3 轮收到最近 2 轮（实测省 hasText 调用），前提是「更老的轮次靠 MutationObserver 定向失效」。
- * 本门：≥3 轮夹具 → scan（热集只含最近 2 轮）→ 只改**最老一轮**行内文本 → 按真实 MutationRecord 形状投递
- * 给结构 observer → 该行 hasText 判定必须被重算（计数 +1）。
- * 负向对照内建：把 observer 里的 textCache.delete(row) 去掉（= 失效只靠热集）⇒ 本门必须转红。 */
-const GP2_HOOK = 'window.__g2 = { hasText: (el) => hasText(el), hot: (el) => hotRows.has(el), calls: () => cost.counts.hasText || 0 };'
-const GP2_NEG_ANCHOR = 'textCache.delete(row); '
+ * C1 nohot 后 hotRows 全删：文本缓存**唯一**失效源 = MutationObserver 定向失效，本门守的就是它。
+ * 本门：≥3 轮夹具 → scan → 只改**最老一轮**行内文本（缓存命中期间必须仍读到旧值）→ 按真实 MutationRecord
+ * 形状投递给结构 observer → 该行 hasText 判定必须在下次读取时重算为新值（纯行为断言，无内部计数）。
+ * 负向对照内建：把 observer 里的 textCache.delete(row) 去掉 ⇒ 本门必须转红（缓存永不失效 ⇒ 仍读到 false）。 */
+const GP2_HOOK = 'window.__g2 = { hasText: (el) => hasText(el) };'
+const GP2_NEG_ANCHOR = 'textCache.delete(row); pinTextOf.delete(row); '
 function gp2Checks(src) {
   const fails = []
   const bad = (m) => fails.push(m)
@@ -1054,11 +1088,9 @@ function gp2Checks(src) {
   }
   try { api.scan() } catch (err) { bad('G-P2 前置失败：scan 抛错 ' + String((err && err.message) || err)); return fails }
   const T = env.win.__g2
-  if (!T.hot(rows[2])) bad('G-P2 前提：最新一轮应在热集')
-  if (T.hot(rows[0])) bad('G-P2 前提：最老一轮不得在热集（P2 热集 = 最近 2 轮）')
+  // C8 后无 hotRows/hasText 计数：改为纯行为断言——缓存命中（改 DOM 后仍读到旧值）与 observer 定向失效（投递后重判）。
   if (T.hasText(rows[0]) !== false) bad('G-P2 前提：老行初判应为「无正文」')
-  const c0 = T.calls()
-  if (T.hasText(rows[0]) !== false || T.calls() !== c0) bad('G-P2 前提：冷行必须走缓存（不得重算）')
+  if (T.hasText(rows[0]) !== false) bad('G-P2 前提：冷行必须走缓存（重复读不得改变判定）')
   rows[0].appendChild(pinTextNode('最老一轮的新正文'))          // 只改最老一轮行内文本
   if (T.hasText(rows[0]) !== false) bad('G-P2 前提：observer 未投递前必须仍是缓存值')
   const mo = env.observers.find((o) => o.opts !== null && o.opts.characterData === true)
@@ -1066,7 +1098,6 @@ function gp2Checks(src) {
   else {
     mo.cb([{ type: 'characterData', target: rows[0] }])          // 走 observer 路径（与真实 MutationRecord 同形）
     if (T.hasText(rows[0]) !== true) bad('G-P2 最老一轮文本变了 ⇒ observer 必须失效该行缓存并重算（实得仍为 false）')
-    if (T.calls() !== c0 + 1) bad('G-P2 失效后必须真的重算一次（hasText 计数 ' + c0 + ' → ' + T.calls() + '）')
   }
   api.dispose()
   return fails
