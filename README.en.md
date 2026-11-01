@@ -12,7 +12,7 @@
 
 In a long conversation, tool calls and reasoning drown out the prose. The official Compact mode also stops folding while a session still has unloaded history, so it cannot help until everything is loaded. This plugin enhances the official transcript and folds on its own terms, independent of whether history has finished loading:
 
-- **Process stops drowning the prose**: past turns collapse into a single "N rows folded · click to expand" line.
+- **Process no longer drowns the prose**: past turns collapse into a single "N rows folded · click to expand" line.
 - **What you want to watch stays visible**: while a turn runs, only the newest thinking window stays open — capped height, scrolling inside itself.
 - **No scrolling back after a turn**: when it finishes, the view glides back to the message that started it.
 
