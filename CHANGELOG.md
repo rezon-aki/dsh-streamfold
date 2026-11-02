@@ -10,7 +10,7 @@
 - 修复：右栏内嵌会话运行时会污染主会话的运行标记与收尾缓存、偶发被迫整轮全量重扫；缓存写入改为按会话作用域过滤，主会话保持增量扫描。
 - 修复：运行轮内新增正文 / 提问卡当次扫描即处理；步骤交接空档不再全树回退；置顶候选按行下标增量插/移并保持与全量重算逐项一致。
 - 调整：兼容声明补上 DSH **0.2.1-rc.4**（`dshReleases` 增 rc.4）：官方 `@deepseek-ai/dsh-client-ui-chat` 0.2.1-rc.2→rc.4 客户端 bundle 逐字节一致（sha256 `a00e5176…`），`dsh-client-ui-tool` / `dsh-client-ui-workflow-run` 亦一致；仅 `dsh-client-ui-conversation` 增加会话视图「更多」菜单（纯增量，`[data-conversation-session]` 语义未变）；本机 0.2.1-rc.4 host 实测加载。README 双语与 FEATURES 的实测版本同步更新。
-- 调整：英文 README 首屏措辞修正（#3，感谢 @aki-S-A）。
+- 调整：英文 README 首屏措辞修正（#3）。
 - 调整：无客户端新增依赖、无新增设置项；`lib/client.js` 229390 → 259178 B（商城单文件上限 262144 B）；产品内仍无日志/探针（由 `dsh-streamfold-dev` 承担）。
 
 ## [0.7.11] — 2026-10-29
