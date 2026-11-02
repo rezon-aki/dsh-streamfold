@@ -66,7 +66,7 @@ Compatibility (`engines.dsh` in `package.json` is the single source of truth; th
 
 | Plugin version | Supported DSH |
 | --- | --- |
-| 0.7.x (this release) | `>=0.2.1-rc.1 <0.3.0`; verified on **0.2.1-rc.2**, 0.2.0-rc.2 listed as compatible |
+| 0.7.x (this release) | `>=0.2.1-rc.1 <0.3.0`; verified on **0.2.1-rc.4**, 0.2.0-rc.2 / 0.2.1-rc.2 listed as compatible |
 | 0.5.0 | the 0.1.7 series |
 | 0.4.x | 0.1.5 and earlier |
 
