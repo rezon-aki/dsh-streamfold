@@ -16,7 +16,7 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 - **What you want to watch stays visible**: while a turn runs, only the newest thinking window stays open — capped height, scrolling inside itself.
 - **No scrolling back after a turn**: when it finishes, the view glides back to the message that started it.
 
-**How it differs from the official modes and Friendly Steps**
+**How it differs from the official "Work details" modes**
 
 | | Official "Work details" | This plugin's Fold |
 | --- | --- | --- |
@@ -26,12 +26,11 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 | Finding folded content | Expand it again | `hidden=until-found`, so Ctrl+F still hits it |
 | Reading a past turn | Scroll up to find its prompt | That turn's prompt stays pinned at the top |
 
-It overlaps with **Friendly Steps** (`ui`/`chat`, also folds Think and tool rows), so pick one; the differences are mainly the last three rows above plus the per-frame, three-rows-per-group folding rhythm.
-
 ## What it looks like once installed
 
 - **You can watch it think.** The newest thinking window of the running turn opens automatically (height configurable); older ones fold back into a one-line summary after a grace period. Superseded windows and past turns no longer fight for the scroll position.
 - **Folding keeps a rhythm and does not flash.** Collapsing runs bottom-up, 3 rows per group with a 70 ms stagger; expanding runs top-down, 3 rows per group. Cross-turn batches (page load, session switch) complete instantly; even a very long single turn advances group by group (only a single turn over 84 rows takes the instant guard rail).
+- **Answer longer than a screen.** Pick **Stop and read** in the top setting ("When the answer fills the screen"): while the answer streams, scrolling stops automatically once its top reaches the top of the page, leaving you at the answer's start to read it directly. The default is still **Settle on the prompt**.
 - **Settle on the prompt.** When a turn finishes, the view glides back to **the message that started it** — or, when "Keep LLM questions unfolded" is on and the turn contains an `ask_user_question` card, to the turn's **last question card**, auto-expanded (that is what needs your answer). Skipped if you scrolled away yourself. For 2 seconds after arrival it also corrects late layout shifts from images or code blocks.
 - **Pin the prompt.** The prompt of the turn you are reading stays pinned to the top of the conversation, one line with an ellipsis; it steps aside while the real row is on screen, and clicking it glides back to that message.
 - **Steady follow.** The bottom follow advances per frame; scrolling up stops it, and a "back to bottom" button appears once you are away. Scrolling inside a thinking window or a tool body no longer stops the follow by mistake.
@@ -66,7 +65,7 @@ Compatibility (`engines.dsh` in `package.json` is the single source of truth; th
 
 | Plugin version | Supported DSH |
 | --- | --- |
-| 0.7.x (this release) | `>=0.2.1-rc.1 <0.3.0`; verified on **0.2.1-rc.4**, 0.2.0-rc.2 / 0.2.1-rc.2 listed as compatible |
+| 0.7.x (this release) | `>=0.2.1-rc.1 <0.3.0`; contract-level verified on **0.2.1-rc.4** (rc.2→rc.4 client bundle byte-identical + local host load), 0.2.0-rc.2 / 0.2.1-rc.2 listed as compatible |
 | 0.5.0 | the 0.1.7 series |
 | 0.4.x | 0.1.5 and earlier |
 
@@ -106,6 +105,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 
 | Setting | Key | Default | Range | Meaning |
 | --- | --- | --- | --- | --- |
+| When the answer fills the screen | `settleToPrompt` | Settle on the prompt | Settle on the prompt / Stop and read | **Settle on the prompt** — keep following to the bottom, then glide back to your prompt after the turn (skipped if you scrolled away yourself); **Stop and read** — while the answer streams, scrolling stops automatically once its top reaches the top of the page, leaving you at the answer's start to read it directly |
 | Work details | `mode` | Fold | Fold / official four modes | Choosing Fold parks the official mode on Verbose, avoiding double folding |
 | Fold history turns | `foldHistory` | on | toggle | Off: do not fold past turns on page load (only while a turn runs) |
 | Keep interleaved prose | `keepInterleavedText` | on | toggle | Keep prose rows while folding and separate them from the final answer with a rule (no capped window) |
@@ -119,7 +119,6 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Return to tail on new message | `returnToTail` | on | toggle | While stopped mid-transcript, sending a new message glides back to the bottom; off keeps the view where it is until you scroll to the bottom or press back-to-bottom |
 | Smoothing factor | `smoothGrow` | 0.15 | 0.05–0.9 | Share of the remaining gap consumed per frame |
 | Show "back to bottom" | `showJumpButton` | on | toggle | Shown when away from the bottom (hidden for follow lag, to avoid flicker) |
-| Settle on the prompt | `settleToPrompt` | on | toggle | When a turn finishes, glide back to your message that started it; with unfolded questions on and a question card in the turn, glide to that last card (and expand it) instead; if you scrolled away yourself, nothing moves |
 | Pin the prompt | `pinPrompt` | on | toggle | Keep the prompt of the turn you are reading pinned to the top: one line with ellipsis, steps aside while the real row is in view, click to glide back |
 | Animated transitions | `animations` | on | toggle | Off makes folding / expanding / jumping instant |
 | Window sparks | `sparks` | on | toggle | Sparks along the bottom edge of the running thinking window (off = no canvas, no frames) |
@@ -133,7 +132,7 @@ Settings live in browser localStorage, scoped to the DSH page origin.
 
 ## Diagnostics
 
-Browser console (`__dshStreamfold` is the only public debug surface):
+Browser console (`__dshStreamfold` is the public control/debug surface; `fx` is the spark test contract; the product has no logging, probes, or frame sampling):
 
 ```js
 __dshStreamfold.state()          // current settings + official "Work details" snapshot
@@ -142,7 +141,7 @@ __dshStreamfold.scan()           // rescan the current DOM immediately (settings
 __dshStreamfold.dispose()        // tear down all injections (idempotent; refresh restores native)
 ```
 
-When reporting an issue, attach your DSH version and the `__dshStreamfold.state()` output. Frame tracing and cost aggregation live in the maintainer's local dev probe plugin, not in the published package.
+When reporting an issue, attach your DSH version and the `__dshStreamfold.state()` output.
 
 ## Development and verification
 
