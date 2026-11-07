@@ -24,7 +24,7 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 | Thinking while running | Process rows fold too — you see the summary | Only the running turn's newest thinking window stays open (capped, self-scrolling) |
 | After a turn | Stops at the bottom; you scroll back yourself | Glides back to the message that started the turn |
 | Finding folded content | Expand it again | `hidden=until-found`, so Ctrl+F still hits it |
-| Reading a past turn | Scroll up to find its prompt | That turn's prompt stays pinned at the top |
+| Reading a past turn | Scroll up to find its prompt | A quick navigation stays fixed at the top |
 
 ## What it looks like once installed
 
@@ -32,7 +32,7 @@ In a long conversation, tool calls and reasoning drown out the prose. The offici
 - **Folding keeps a rhythm and does not flash.** Collapsing runs bottom-up, 3 rows per group with a 70 ms stagger; expanding runs top-down, 3 rows per group. Cross-turn batches (page load, session switch) complete instantly; even a very long single turn advances group by group (only a single turn over 84 rows takes the instant guard rail).
 - **Answer longer than a screen.** Pick **Stop and read** in the top setting ("When the answer fills the screen"): while the answer streams, scrolling stops automatically once its top reaches the top of the page, leaving you at the answer's start to read it directly. The default is still **Settle on the prompt**.
 - **Settle on the prompt.** When a turn finishes, the view glides back to **the message that started it** — or, when "Keep LLM questions unfolded" is on and the turn contains an `ask_user_question` card, to the turn's **last question card**, auto-expanded (that is what needs your answer). Skipped if you scrolled away yourself. For 2 seconds after arrival it also corrects late layout shifts from images or code blocks.
-- **Pin the prompt.** The prompt of the turn you are reading stays pinned to the top of the conversation, one line with an ellipsis; it steps aside while the real row is on screen, and clicking it glides back to that message.
+- **A quick navigation at the top.** The prompt of the turn you are reading sits in a bar fixed at the top of the conversation, one line with an ellipsis; it steps aside while the real row is on screen, and clicking it glides back to that message.
 - **Steady follow.** The bottom follow advances per frame; scrolling up stops it, and a "back to bottom" button appears once you are away. Scrolling inside a thinking window or a tool body no longer stops the follow by mistake.
 - **Search is handled too.** Folded content is still findable with Ctrl+F; while searching the plugin releases the scroll and does not pin to the bottom, and returning to the window tail or pressing back-to-bottom resumes the follow.
 - **Window sparks / forging.** Sparks along the bottom edge of the thinking window get brighter and denser with scroll speed; while the answer streams, each new chunk throws a spray of sparks from the writing head. Colour, density, speed and lifetime are configurable, and turning them off means they never run.
@@ -119,7 +119,7 @@ While running, only the newest thinking window opens automatically; **windows yo
 | Return to tail on new message | `returnToTail` | on | toggle | While stopped mid-transcript, sending a new message glides back to the bottom; off keeps the view where it is until you scroll to the bottom or press back-to-bottom |
 | Smoothing factor | `smoothGrow` | 0.15 | 0.05–0.9 | Share of the remaining gap consumed per frame |
 | Show "back to bottom" | `showJumpButton` | on | toggle | Shown when away from the bottom (hidden for follow lag, to avoid flicker) |
-| Pin the prompt | `pinPrompt` | on | toggle | Keep the prompt of the turn you are reading pinned to the top: one line with ellipsis, steps aside while the real row is in view, click to glide back |
+| Pin the prompt | `pinPrompt` | on | toggle | Keep a quick navigation fixed at the top showing the prompt of the turn you are reading: one line with ellipsis, steps aside while the real row is in view, click to glide back |
 | Animated transitions | `animations` | on | toggle | Off makes folding / expanding / jumping instant |
 | Window sparks | `sparks` | on | toggle | Sparks along the bottom edge of the running thinking window (off = no canvas, no frames) |
 | Spark colour | `sparkColor` | `#4fa8ff` | colour | Spark colour; the core is brightened towards white heat |
